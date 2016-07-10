@@ -1,0 +1,13 @@
+/rusty
+/test/.rusty/mpc.c.sum
+/test/.rusty/test.c.sum
+/test/object/test/mpc.c.o
+/test/object/test/test.c.o
+/test/object/test2/mpc.c.o
+/test/object/test2/test.c.o
+/test/object/test3/mpc.c.o
+/test/object/test3/test.c.o
+/test/output/test/test
+/test/output/test2/test2
+/test/output/test3/test3.a
+/test/test3.a
