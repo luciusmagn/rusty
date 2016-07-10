@@ -1,0 +1,23 @@
+compiler: "gcc";
+
+target test:
+	name: "test";
+	type: executable;
+	flags: { "-Wall" };
+	file: "test.c";
+	dir: "dir";
+
+target test2:
+	name: "test2";
+	type: libshared;
+	flags: { "-Wall" };
+	file: "test.c";
+	dir: "dir";
+
+target test3:
+	name: "test3";
+	type: libstatic;
+	flags: { "-Wall" };
+	file: "test.c";
+	dir: "dir";
+
