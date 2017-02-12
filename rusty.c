@@ -122,8 +122,23 @@ void handleopts();
 void printhelp();
 void printabout();
 
-char* g_compute_checksum_for_string(GChecksumType checksum_type, const char* str, gssize length);
+char* adler32(const char* str, uint64 len);
+//char* g_compute_checksum_for_string(GChecksumType checksum_type, const char* str, gssize length);
+//#define md5 g_compute_checksum_for_string
 
+char* adler32(const char* str, uint64 len)
+{
+  uint32 a = 1; uint32 b = 0;
+  for(uint64 i=0; i<len; i++)
+  {
+      a = (a + str[i]) % 65521;
+      b = (a + b) % 65521;
+  }
+  uint32 dec = (b << 16) | a;
+  char* hex = malloc(sizeof(char) * 10);
+  snprintf(hex, 10, "%x", dec);
+  return hex;
+}
 //global vars
 options* opts;
 char* compiler;
@@ -291,7 +306,7 @@ int8 modified(char* name)
     if(opts->fullrebuild) return 1;
     char* file = readfile(name);
     char* checksum_new =
-        g_compute_checksum_for_string(G_CHECKSUM_MD5, file, strlen(file));
+        adler32(file, strlen(file));
     mkdir(".rusty", ALLPERMS);
     char* sumname;
     asprintf(&sumname, ".rusty/%s.sum", filename(name));
@@ -785,7 +800,7 @@ void printabout()
     puts("be either executable or a library, both shared or static.      ");
     puts("Syntax reference:                                              ");
     puts("#basic rusty file:                                             ");
-    puts("compiler: \"gcc\";   #each rusty file must start with this     ");
+    puts("compiler: \"gcc\"; #each rusty file must start with this       ");
     puts("                   #the compiler executable should be          ");
     puts("                   #in the $PATH                               ");
     puts("                   #Rusty currently only supports C,C++ and ASM");
