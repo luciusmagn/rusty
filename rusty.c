@@ -123,8 +123,6 @@ void printhelp();
 void printabout();
 
 char* adler32(const char* str, uint64 len);
-//char* g_compute_checksum_for_string(GChecksumType checksum_type, const char* str, gssize length);
-//#define md5 g_compute_checksum_for_string
 
 char* adler32(const char* str, uint64 len)
 {
@@ -426,7 +424,7 @@ void deletedir(char* name)
 
 
 
-//main flow
+
 int32 main(int32 argc, char** argv)
 {
     opts = calloc(1, sizeof(options));
@@ -787,6 +785,14 @@ void handleopts()
 
 void printhelp()
 {
+     puts("--ast             print the AST of rusty file");
+     puts("--info            print basic information about each target");
+     puts("--compiler name   change the compiler used");
+     puts("--help            print this help text");
+     puts("--about           print the about text");
+     puts("--dir             change CWD before looking for rusty file");
+     puts("--fullrebuild     ignore whether files have been changed or not");
+     exit(0);
 }
 
 void printabout()
