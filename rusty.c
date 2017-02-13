@@ -18,11 +18,10 @@
 #include <dirent.h>
 #include <strings.h>
 #endif
-//also depends on glib-2.0, but due to troubles with header files
-//the single function declaration needed has been manually inserted into the file
-//TODO: use own md5 hashing function
+
 #include "util.h"
 #include "mpc.h"
+#include "arg.h"
 
 //defines
 #define error(x)     do { _error(x, __FILE__, __LINE__); } while(0)
@@ -140,6 +139,7 @@ char* adler32(const char* str, uint64 len)
 //global vars
 options* opts;
 char* compiler;
+char* output_path;
 mpc_ast_t* tree;
 llist* targets = NULL;
 
@@ -425,7 +425,7 @@ void deletedir(char* name)
 
 
 
-int32 main(int32 argc, char** argv)
+int32 main(int32 argc, char* argv[])
 {
     opts = calloc(1, sizeof(options));
     llist* wanted = NULL;
@@ -452,6 +452,30 @@ int32 main(int32 argc, char** argv)
             }
         }
     }
+    
+    ARGBEGIN
+    {
+    	case 'h':
+    		printhelp();
+    		break;
+    	case 'd':
+    		chdir(argv[argc + 1]);
+    		break;
+    	case 'r':
+    		opts->fullrebuild = 1;
+    		break; 
+    	case 'i':
+    		opts->printinfo = 1;
+    		break;
+	case '-':
+		ARGF(); 
+		break;   
+	default:
+    		printf("unrecognized option: %c\n", ARGC());
+    		break;
+    }
+    ARGEND
+    
     int32 i = 10;
     while(access("rusty.txt", R_OK) != 0)
     {
@@ -718,13 +742,15 @@ void linker(llist* linktargets)
             asprintf(&flags, "%s %s", flags, llist_get(current->flags, j, 0));
         }
         char* cmd;
+	char* path = (output_path ? output_path : "output");
+	puts(path);
         switch(current->type)
         {
         case EXECUTABLE:
-            asprintf(&cmd, "%s %s %s -o output/%s/%s", compiler, list, flags, current->ident, current->name);
+            asprintf(&cmd, "%s %s %s -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
             break;
         case LIBSHARED:
-            asprintf(&cmd, "%s %s %s -static -o output/%s/%s", compiler, list, flags, current->ident, current->name);
+            asprintf(&cmd, "%s %s %s -static -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
             break;
         case LIBSTATIC:
             if(0 == 1) fprintf(NULL, "I hate ar and this stupid gcc bug");
@@ -786,12 +812,13 @@ void handleopts()
 void printhelp()
 {
      puts("--ast             print the AST of rusty file");
-     puts("--info            print basic information about each target");
+     puts("--info  -i        print basic information about each target");
      puts("--compiler name   change the compiler used");
-     puts("--help            print this help text");
+     puts("--help  -h        print this help text");
      puts("--about           print the about text");
-     puts("--dir             change CWD before looking for rusty file");
-     puts("--fullrebuild     ignore whether files have been changed or not");
+     puts("--dir   -d        change CWD before looking for rusty file");
+     puts("--fullrebuild -r  ignore whether files have been changed or not");
+     puts("--output -o       change output path");
      exit(0);
 }
 
@@ -828,7 +855,7 @@ void printabout()
 
 void cleanup()
 {
-    puts(ANSI_CYAN "cleaning up:" ANSI_BLUE " all files will have to be rebuilt on next call" ANSI_RESET);
+    puts(ANSI_CYAN "cleaning up:" ANSI_BLUE " all files will have to be rebuilt next time" ANSI_RESET);
     deletedir("./.rusty");
     deletedir("./output");
     deletedir("./object");
