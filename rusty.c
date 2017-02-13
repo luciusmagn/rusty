@@ -21,7 +21,7 @@
 //also depends on glib-2.0, but due to troubles with header files
 //the single function declaration needed has been manually inserted into the file
 //TODO: use own md5 hashing function
-#include "integer.h"
+#include "util.h"
 #include "mpc.h"
 
 //defines
