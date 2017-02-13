@@ -1,2 +1,1 @@
-#export CC=gcc
-cc rusty.c mpc.c -Wall -o rusty
+gcc rusty.c mpc.c -std=c99 -Wall -o rusty
