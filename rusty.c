@@ -49,13 +49,6 @@
 //types
 typedef enum
 {
-    G_CHECKSUM_MD5,
-    G_CHECKSUM_SHA1,
-    G_CHECKSUM_SHA256,
-    G_CHECKSUM_SHA512
-} GChecksumType;
-typedef enum
-{
     EXECUTABLE,
     LIBSHARED,
     LIBSTATIC
@@ -79,7 +72,6 @@ typedef struct
     int8 printast;
     int8 printinfo;
 } options;
-typedef size_t gssize;
 
 //functions
 llist* llist_new(void*);
