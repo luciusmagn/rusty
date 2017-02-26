@@ -79,6 +79,7 @@ void* llist_get(llist*, int32, int32);
 
 char* get_line(char*,int32);
 char* get_string(mpc_ast_t*);
+char* adler32(const char* str, uint64 len)
 char* path_join(const char*, const char*);
 char* readfile(const char*);
 char* filename(char*);
@@ -108,10 +109,11 @@ void linker(llist*);
 
 void cleanup();
 void handleopts();
+int8 option(char**, int*);
 void printhelp();
 void printabout();
 
-char* adler32(const char* str, uint64 len);
+
 
 //global vars
 options* opts;
@@ -277,6 +279,7 @@ char** strsplit(char* str, const char* delim)
     }
     return result;
 }
+
 int8 endswith(const char *string, const char* suffix)
 {
     char* loc = strstr(string, suffix);
@@ -414,14 +417,15 @@ void deletedir(char* name)
 }
 
 
-
+//TODO refactor to not be retarded
+llist* wanted = NULL;
 
 int32 main(int32 argc, char* argv[])
 {
     opts = calloc(1, sizeof(options));
-    llist* wanted = NULL;
+    
     if(argc == 1) wanted = llist_new("all");
-    else
+    /*else
     {
         for(int32 i = 1; i < argc; i++)
         {
@@ -442,7 +446,7 @@ int32 main(int32 argc, char* argv[])
                 else llist_put(wanted, argv[i]);
             }
         }
-    }
+    }*/
     
     ARGBEGIN
     {
@@ -458,10 +462,7 @@ int32 main(int32 argc, char* argv[])
     	case 'i':
     		opts->printinfo = 1;
     		break;
-	case '-':
-		ARGF(); 
-		break;   
-	default:
+	    default:
     		printf("unrecognized option: %c\n", ARGC());
     		break;
     }
@@ -583,6 +584,7 @@ void read_type(mpc_ast_t* ast, target* trg)
     else if(strcmp(ast->children[2]->contents, "libstatic") == 0)  trg->type = LIBSTATIC;
     return;
 }
+
 void read_dir(target* trg, char* name)
 {
     DIR* dir = opendir(name);
@@ -798,6 +800,25 @@ void handleopts()
             printf("\n");
         }
     }
+}
+
+int8 option(char** argv, int* argc)
+{
+         if(strcmp(argv[0], "--ast") == 0) opts->printast = 1;
+    else if(strcmp(argv[0], "--info") == 0) opts->printinfo = 1;
+    else if(strcmp(argv[0], "--compiler") == 0) compiler = (*argc++, (++argv)[0]);
+    else if(strcmp(argv[0], "--help") == 0) printhelp();
+    else if(strcmp(argv[0], "--about") == 0) printabout();
+    else if(strcmp(argv[0], "--dir") == 0) chdir( (*argc++, (++argv)[0]) );
+    else if(strcmp(argv[0], "--fullrebuild") == 0) opts->fullrebuild = 1;
+    else if(strcmp(argv[0], "--output") == 0) output_path = (*argc++, (++argv)[0]);
+    else if(strcmp(argv[i], "clean") == 0) cleanup();
+    else 
+    {
+        if(!wanted) wanted = llist_new(argv[i]);
+        else llist_put(wanted, argv[i]);
+    }
+    return 0;
 }
 
 void printhelp()
