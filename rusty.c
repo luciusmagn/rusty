@@ -425,28 +425,6 @@ int32 main(int32 argc, char* argv[])
     opts = calloc(1, sizeof(options));
     
     if(argc == 1) wanted = llist_new("all");
-    /*else
-    {
-        for(int32 i = 1; i < argc; i++)
-        {
-            if(argv[i][0] == '-')
-            {
-                if(strcmp(argv[i], "--ast") == 0) opts->printast = 1;
-                else if(strcmp(argv[i], "--info") == 0) opts->printinfo = 1;
-                else if(strcmp(argv[i], "--compiler") == 0) compiler = argv[++i];
-                else if(strcmp(argv[i], "--help") == 0) printhelp();
-                else if(strcmp(argv[i], "--about") == 0) printabout();
-                else if(strcmp(argv[i], "--dir") == 0) chdir(argv[++i]);
-                else if(strcmp(argv[i], "--fullrebuild") == 0) opts->fullrebuild = 1;
-            }
-            else
-            {
-                if(strcmp(argv[i], "clean") == 0) cleanup();
-                if(!wanted) wanted = llist_new(argv[i]);
-                else llist_put(wanted, argv[i]);
-            }
-        }
-    }*/
     
     ARGBEGIN
     {
@@ -454,7 +432,7 @@ int32 main(int32 argc, char* argv[])
     		printhelp();
     		break;
     	case 'd':
-    		chdir(argv[argc + 1]);
+    		chdir((++argv)[0]);
     		break;
     	case 'r':
     		opts->fullrebuild = 1;
