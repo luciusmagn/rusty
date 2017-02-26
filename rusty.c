@@ -24,6 +24,10 @@
 
 //defines
 #define error(x)     do { _error(x, __FILE__, __LINE__); } while(0)
+#define emkdir(x,y)  do { if(mkdir(x,y)) {      \
+                            char* msg; asprintf(&msg,"unable to create directory \"%s\"", x);\
+                            builderror(msg);\
+                            }} while(0)     
 #define parser       mpc_parser_t*
 #define entry        struct dirent*
 #define MAX_DEPTH    10
@@ -299,7 +303,7 @@ int8 modified(char* name)
     char* file = readfile(name);
     char* checksum_new =
         adler32(file, strlen(file));
-    mkdir(".rusty", ALLPERMS);
+    emkdir(".rusty", ALLPERMS);
     char* sumname;
     asprintf(&sumname, ".rusty/%s.sum", filename(name));
     if (access(sumname, R_OK) == 0)
@@ -648,7 +652,7 @@ void builder(llist* buildtargets)
     if(errors) error("one or more files were not accessible, aborting");
     //step 3 - compile each file to an object file
     errors = 0;
-    mkdir("object", ALLPERMS);
+    emkdir("object", ALLPERMS);
     for(int32 i = 0; i < llist_total(targets, 0); i++)
     {
         target* current = llist_get(targets, i, 0);
@@ -656,7 +660,7 @@ void builder(llist* buildtargets)
         printf(ANSI_MAGENTA "building target: " ANSI_YELLOW "%s\n" ANSI_RESET, current->ident);
         char* dir;
         asprintf(&dir, "object/%s", current->ident);
-        mkdir(dir, ALLPERMS);
+        emkdir(dir, ALLPERMS);
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
             char* path;
@@ -694,14 +698,14 @@ void builder(llist* buildtargets)
 void linker(llist* linktargets)
 {
     int32 errors = 0;
-    mkdir("output", ALLPERMS);
+    emkdir("output", ALLPERMS);
     for(int32 i = 0; i < llist_total(targets, 0); i++)
     {
         target* current = llist_get(targets, i, 0);
         if(!searchstr(linktargets, current->ident) && !searchstr(linktargets, "all")) continue;
         char* dir;
         asprintf(&dir, "output/%s", current->name);
-        mkdir(dir, ALLPERMS);
+        emkdir(dir, ALLPERMS);
         char* list = " ";
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
