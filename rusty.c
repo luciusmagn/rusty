@@ -113,19 +113,6 @@ void printabout();
 
 char* adler32(const char* str, uint64 len);
 
-char* adler32(const char* str, uint64 len)
-{
-  uint32 a = 1; uint32 b = 0;
-  for(uint64 i=0; i<len; i++)
-  {
-      a = (a + str[i]) % 65521;
-      b = (a + b) % 65521;
-  }
-  uint32 dec = (b << 16) | a;
-  char* hex = malloc(sizeof(char) * 10);
-  snprintf(hex, 10, "%x", dec);
-  return hex;
-}
 //global vars
 options* opts;
 char* compiler;
@@ -182,6 +169,20 @@ char* get_line(char* src, int32 index)
 char* get_string(mpc_ast_t* ast)
 {
     return ast->children[2]->children[1]->contents;
+}
+
+char* adler32(const char* str, uint64 len)
+{
+  uint32 a = 1; uint32 b = 0;
+  for(uint64 i=0; i<len; i++)
+  {
+      a = (a + str[i]) % 65521;
+      b = (a + b) % 65521;
+  }
+  uint32 dec = (b << 16) | a;
+  char* hex = malloc(sizeof(char) * 10);
+  snprintf(hex, 10, "%x", dec);
+  return hex;
 }
 
 //path_join(2)
