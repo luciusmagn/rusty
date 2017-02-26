@@ -24,7 +24,7 @@
 
 //defines
 #define error(x)     do { _error(x, __FILE__, __LINE__); } while(0)
-#define emkdir(x,y)  do { if(mkdir(x,y)) {      \
+#define emkdir(x,y)  do { if(mkdir(x,y) && access(x, F_OK)) {      \
                             char* msg; asprintf(&msg,"unable to create directory \"%s\"", x);\
                             builderror(msg);\
                             }} while(0)     
@@ -64,6 +64,7 @@ typedef struct
 {
     char* ident;
     char* name;
+    char* output;
     target_type type;
     llist* files;
     llist* flags;
@@ -473,22 +474,25 @@ void parse()
     parser flags = mpc_new("flags");
     parser file = mpc_new("file");
     parser dir = mpc_new("dir");
+    parser output = mpc_new("output");
     parser target = mpc_new("target");
     parser compiler = mpc_new("compiler");
     parser rusty = mpc_new("rusty");
 
     mpca_lang(MPCA_LANG_DEFAULT,
               "ident   : /[a-zA-Z0-9]+/ ;                                                \n"
-              "string  : '\"' /([a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                    \n"
+              "string  : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                    \n"
               "name    : \"name\" ':' <string> ';' ;                                     \n"
               "type    : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\") ';' ; \n"
               "flags   : \"flags\" ':' '{' <string> (',' <string>)* '}' ';' ;            \n"
               "file    : \"file\" ':' <string> ';' ;                                     \n"
               "dir     : \"dir\" ':' <string> ';' ;                                      \n"
-              "target  : \"target\" <ident> ':' <name> <type>? <flags>? (<file>|<dir>)+ ;\n"
+              "output  : \"output\" ':' <string> ';' ;                                   \n"
+              "target  : \"target\" <ident> ':' <name> <type>? <flags>? <output>?        \n"
+              "        (<file>|<dir>)+ ;                                                 \n"
               "compiler: \"compiler\" ':' <string> ';' ;                                 \n"
               "rusty   : /^/ <compiler> <target>+ /$/ ;                                  \n"
-              , ident, string, name, type, flags, file, dir, target, compiler, rusty, NULL);
+              , ident, string, name, type, flags, file, dir, output, target, compiler, rusty, NULL);
 
     if(mpc_parse_contents("rusty.txt", rusty, &r))
     {
@@ -511,7 +515,7 @@ void parse()
         printf("^\n" ANSI_RESET);
         mpc_err_delete(r.error);
     }
-    mpc_cleanup(10, ident, string, name, type, flags, file, dir, target, compiler, rusty);
+    mpc_cleanup(11, ident, string, name, type, flags, file, dir, output, target, compiler, rusty);
 }
 
 void read_ast(mpc_ast_t* ast)
@@ -528,10 +532,12 @@ void read_trg(mpc_ast_t* ast)
 {
     target* trg = malloc(sizeof(target));
     trg->files = NULL;
+    trg->output = NULL;
     trg->ident = ast->children[1]->contents;
     for (int32 i = 0; i < ast->children_num; i++)
     {
         if(strcmp(ast->children[i]->tag, "name|>") == 0) trg->name = get_string(ast->children[i]);
+        if(strcmp(ast->children[i]->tag, "output|>") == 0) trg->output = get_string(ast->children[i]);
         if(strcmp(ast->children[i]->tag, "file|>") == 0)
         {
             if(trg->files) llist_put(trg->files, get_string(ast->children[i]));
@@ -698,14 +704,14 @@ void builder(llist* buildtargets)
 void linker(llist* linktargets)
 {
     int32 errors = 0;
-    emkdir("output", ALLPERMS);
+    mkdir("output", ALLPERMS);
     for(int32 i = 0; i < llist_total(targets, 0); i++)
     {
         target* current = llist_get(targets, i, 0);
         if(!searchstr(linktargets, current->ident) && !searchstr(linktargets, "all")) continue;
         char* dir;
         asprintf(&dir, "output/%s", current->name);
-        emkdir(dir, ALLPERMS);
+        mkdir(dir, ALLPERMS);
         char* list = " ";
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
@@ -719,13 +725,16 @@ void linker(llist* linktargets)
         char* cmd;
 	char* path = (output_path ? output_path : "output");
 	//TODO puts(path);
+        if(current->output) path = current->output;
         switch(current->type)
         {
         case EXECUTABLE:
-            asprintf(&cmd, "%s %s %s -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
+            if(current->output) asprintf(&cmd, "%s %s %s -o %s/%s", compiler, list, flags, path, current->name);
+            else asprintf(&cmd, "%s %s %s -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
             break;
         case LIBSHARED:
-            asprintf(&cmd, "%s %s %s -static -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
+            if(current->output) asprintf(&cmd, "%s %s %s -static -o %s/%s", compiler, list, flags, path, current->name);
+            else asprintf(&cmd, "%s %s %s -static -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
             break;
         case LIBSTATIC:
             if(0 == 1) fprintf(NULL, "I hate ar and this stupid gcc bug");
@@ -737,16 +746,25 @@ void linker(llist* linktargets)
                 asprintf(&list2, "%s %s/object/%s/%s.o ",
                          list2, cwd, current->ident, filename(llist_get(current->files, j, 0)));
             }
-            char* path;
-            asprintf(&path, "output/%s", current->ident);
-            chdir(path);
-            asprintf(&cmd, "ar -rcs %s.a %s", current->ident, list2);
+            if (current->output)
+            {
+                chdir(path);
+                asprintf(&cmd, "ar -rcs %s.a %s", current->name, list2);
+            }
+            else 
+            {
+                char* path;
+                asprintf(&path, "output/%s", current->ident);
+                chdir(path);
+                asprintf(&cmd, "ar -rcs %s.a %s", current->name, list2);
+            }
+                  
             if(system(cmd))
             {
                 errors++;
                 printf(ANSI_RED "failed to link target " ANSI_YELLOW "%s\n" ANSI_RESET, current->ident);
             }
-            chdir("../../");
+            chdir(cwd);
             break;
         }
         printf(ANSI_MAGENTA "linking target" ANSI_YELLOW " %s\n" ANSI_RESET, current->ident);
