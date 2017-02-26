@@ -34,9 +34,10 @@ static char *argv0;
 
 /* use main(int argc, char *argv[]) */
 #define ARGBEGIN	for (argv0 = *argv, argv++, argc--;\
-					argv[0] && argv[0][0] == '-' && (argv[0][1] == '-' ? option(argv, &argc) : 1)\
-					&& argv[0][1];\
+					argv[0] && (argv[0][1] == '-' ? option(argv, &argc) : 1);\
 					argc--, argv++) {\
+                if(argv[0][1] == '-') continue;\
+                if(!(argv[0][0] == '-' && argv[0][1])) continue; \
 				char argc_;\
 				char **argv_;\
 				int brk_;\

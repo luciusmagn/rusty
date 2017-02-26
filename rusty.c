@@ -79,7 +79,7 @@ void* llist_get(llist*, int32, int32);
 
 char* get_line(char*,int32);
 char* get_string(mpc_ast_t*);
-char* adler32(const char* str, uint64 len)
+char* adler32(const char*, uint64);
 char* path_join(const char*, const char*);
 char* readfile(const char*);
 char* filename(char*);
@@ -804,21 +804,22 @@ void handleopts()
 
 int8 option(char** argv, int* argc)
 {
+    puts(argv[0]);
          if(strcmp(argv[0], "--ast") == 0) opts->printast = 1;
     else if(strcmp(argv[0], "--info") == 0) opts->printinfo = 1;
-    else if(strcmp(argv[0], "--compiler") == 0) compiler = (*argc++, (++argv)[0]);
+    else if(strcmp(argv[0], "--compiler") == 0) { compiler = (++argv)[0]; (*argc)++; }
     else if(strcmp(argv[0], "--help") == 0) printhelp();
     else if(strcmp(argv[0], "--about") == 0) printabout();
-    else if(strcmp(argv[0], "--dir") == 0) chdir( (*argc++, (++argv)[0]) );
+    else if(strcmp(argv[0], "--dir") == 0) { chdir((++argv)[0]); (*argc)++; }
     else if(strcmp(argv[0], "--fullrebuild") == 0) opts->fullrebuild = 1;
-    else if(strcmp(argv[0], "--output") == 0) output_path = (*argc++, (++argv)[0]);
-    else if(strcmp(argv[i], "clean") == 0) cleanup();
+    else if(strcmp(argv[0], "--output") == 0) { output_path = (++argv)[0]; (*argc)++; }
+    else if(strcmp(argv[0], "clean") == 0) cleanup();
     else 
     {
-        if(!wanted) wanted = llist_new(argv[i]);
-        else llist_put(wanted, argv[i]);
+        if(!wanted) wanted = llist_new(argv[0]);
+        else llist_put(wanted, argv[0]);
     }
-    return 0;
+    return 1;
 }
 
 void printhelp()
