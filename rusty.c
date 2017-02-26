@@ -16,7 +16,6 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <strings.h>
 #endif
 
 #include "util.h"
@@ -40,7 +39,6 @@
 #define PATH_JOIN_SEPERATOR   "\\"
 #define PATH_C '\\'
 #define R_OK _A_NORMAL
-#define rindex(x,y) do { strrchr(x,y); } while(0) //on Windows, no strings.h :(
 #else
 #define PATH_JOIN_SEPERATOR   "/"
 #define PATH_C '/'
@@ -253,7 +251,7 @@ char* readfile(const char* filename)
 char* filename(char* path)
 {
     if (strchr(path, PATH_C))
-        return rindex(path, PATH_C) + 1;
+        return strchr(path, PATH_C) + 1;
     else return path;
 }
 
@@ -735,7 +733,7 @@ void linker(llist* linktargets)
         }
         char* cmd;
 	char* path = (output_path ? output_path : "output");
-	puts(path);
+	//TODO puts(path);
         switch(current->type)
         {
         case EXECUTABLE:
