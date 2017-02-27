@@ -487,7 +487,7 @@ void parse()
 
     mpca_lang(MPCA_LANG_DEFAULT,
               "ident   : /[a-zA-Z0-9]+/ ;                                                \n"
-              "string  : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                    \n"
+              "string  : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                   \n"
               "name    : \"name\" ':' <string> ';' ;                                     \n"
               "type    : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\") ';' ; \n"
               "flags   : \"flags\" ':' '{' <string> (',' <string>)* '}' ';' ;            \n"
@@ -827,7 +827,7 @@ int8 option(char** argv, int* argc)
         else if(strcmp(argv[0], "--dir") == 0) { chdir((++argv)[0]); (*argc)++; }
     }
     
-    if(strncmp(argv[0], "--", 2)) printf("unrecognized option: %s", argv[0]);
+    if(strncmp(argv[0], "--", 2) == 0) printf("unrecognized option: %s", argv[0]);
     else 
     {
         if(!wanted) wanted = llist_new(argv[0]);
