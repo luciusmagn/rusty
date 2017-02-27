@@ -1,0 +1,44 @@
+compiler: "gcc";
+
+target obj_test:
+    name: "lib";
+    type: object;
+    flags: { "-Wall" };
+    output: ".";
+    install: { "can't install target obj_test" };
+    file: "lib.c"
+
+if(windows)
+{
+    target rusty_:
+        name: "rusty";
+        type: executable;
+        flags: { "-Wall" };
+        output: ".";
+        file: "mpc.c";
+        file: "rusty.c";
+}
+else
+{
+    target rusty_:
+        name: "rusty";
+        type: executable;
+        flags: { "-Wall" };
+        output: ".";
+        install: 
+        {
+            "cp ./rusty /usr/bin/rusty";
+            "echo $HOME";
+            "export POTATO=tato";
+        };
+        file: "mpc.c";
+        file: "rusty.c";
+}
+
+
+build rusty:
+    depends: { "mpc.c", "rusty.c", "lib.c", "mpc.h", "arg.h", "util.h" }
+    build: rusty_;
+    build: obj_test;
+    link: rusty_ + obj_test;
+    exec: "echo build completed";

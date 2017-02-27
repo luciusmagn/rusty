@@ -482,23 +482,25 @@ void parse()
     parser dir = mpc_new("dir");
     parser output = mpc_new("output");
     parser target = mpc_new("target");
+    parser system = mpc_new("system");
     parser compiler = mpc_new("compiler");
     parser rusty = mpc_new("rusty");
 
     mpca_lang(MPCA_LANG_DEFAULT,
-              "ident   : /[a-zA-Z0-9]+/ ;                                                \n"
-              "string  : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                   \n"
-              "name    : \"name\" ':' <string> ';' ;                                     \n"
-              "type    : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\") ';' ; \n"
-              "flags   : \"flags\" ':' '{' <string> (',' <string>)* '}' ';' ;            \n"
-              "file    : \"file\" ':' <string> ';' ;                                     \n"
-              "dir     : \"dir\" ':' <string> ';' ;                                      \n"
-              "output  : \"output\" ':' <string> ';' ;                                   \n"
-              "target  : \"target\" <ident> ':' <name> <type>? <flags>? <output>?        \n"
-              "        (<file>|<dir>)+ ;                                                 \n"
-              "compiler: \"compiler\" ':' <string> ';' ;                                 \n"
-              "rusty   : /^/ <compiler> <target>+ /$/ ;                                  \n"
-              , ident, string, name, type, flags, file, dir, output, target, compiler, rusty, NULL);
+              "ident   : /[a-zA-Z0-9]+/ ;                                                           \n"
+              "string  : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                              \n"
+              "name    : \"name\" ':' <string> ';' ;                                                \n"
+              "type    : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
+              "flags   : \"flags\" ':' '{' <string> (',' <string>)* '}' ';' ;                       \n"
+              "file    : \"file\" ':' <string> ';' ;                                                \n"
+              "dir     : \"dir\" ':' <string> ';' ;                                                 \n"
+              "output  : \"output\" ':' <string> ';' ;                                              \n"
+              "target  : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
+              "        (<file>|<dir>)+ ;                                                            \n"
+              "system  : \"if\" '(' (\"windows\"|\"osx\"|\"unix\") ')' '{' <target>+ '}' ;          \n"
+              "compiler: \"compiler\" ':' <string> ';' ;                                            \n"
+              "rusty   : /^/ <compiler> <target>+ /$/ ;                                             \n"
+              , ident, string, name, type, flags, file, dir, output, target, system, compiler, rusty, NULL);
 
     if(mpc_parse_contents("rusty.txt", rusty, &r))
     {
@@ -521,7 +523,7 @@ void parse()
         printf("^\n" ANSI_RESET);
         mpc_err_delete(r.error);
     }
-    mpc_cleanup(11, ident, string, name, type, flags, file, dir, output, target, compiler, rusty);
+    mpc_cleanup(12, ident, string, name, type, flags, file, dir, output, target, system, compiler, rusty);
 }
 
 void read_ast(mpc_ast_t* ast)
