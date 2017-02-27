@@ -4,7 +4,6 @@ int main()
 {
 	printf("Hello, world");
 	puts("Hello, world");
-	puts("Soyuz nerushimy");
 }
 
 int testf() {};
