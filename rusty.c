@@ -808,16 +808,24 @@ void handleopts()
 
 int8 option(char** argv, int* argc)
 {
+    if(!argv[0]) return 1;
+    
     puts(argv[0]);
          if(strcmp(argv[0], "--ast") == 0) opts->printast = 1;
     else if(strcmp(argv[0], "--info") == 0) opts->printinfo = 1;
-    else if(strcmp(argv[0], "--compiler") == 0) { compiler = (++argv)[0]; (*argc)++; }
     else if(strcmp(argv[0], "--help") == 0) printhelp();
     else if(strcmp(argv[0], "--about") == 0) printabout();
-    else if(strcmp(argv[0], "--dir") == 0) { chdir((++argv)[0]); (*argc)++; }
     else if(strcmp(argv[0], "--fullrebuild") == 0) opts->fullrebuild = 1;
-    else if(strcmp(argv[0], "--output") == 0) { output_path = (++argv)[0]; (*argc)++; }
     else if(strcmp(argv[0], "clean") == 0) cleanup();
+    
+    if(argv[1])
+    {
+             if(strcmp(argv[0], "--compiler") == 0) { compiler = (++argv)[0]; (*argc)++; }
+        else if(strcmp(argv[0], "--output") == 0) { output_path = (++argv)[0]; (*argc)++; }
+        else if(strcmp(argv[0], "--dir") == 0) { chdir((++argv)[0]); (*argc)++; }
+    }
+    
+    if(strncmp(argv[0], "--", 2)) printf("unrecognized option: %s", argv[0]);
     else 
     {
         if(!wanted) wanted = llist_new(argv[0]);
