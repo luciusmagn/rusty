@@ -1,4 +1,8 @@
 /rusty
+/output
+/object
+/.rusty/mpc.c.sum
+/.rusty/rusty.c.sum
 /test/.rusty/mpc.c.sum
 /test/.rusty/test.c.sum
 /test/object/test/mpc.c.o

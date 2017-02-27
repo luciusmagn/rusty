@@ -445,6 +445,10 @@ int32 main(int32 argc, char* argv[])
     	case 'i':
     		opts->printinfo = 1;
     		break;
+        case 'a':
+            opts->printast = 1;
+        case 'o':
+            output_path = (++argv)[0];
 	    default:
     		printf("unrecognized option: %c\n", ARGC());
     		break;

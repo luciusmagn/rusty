@@ -1,0 +1,9 @@
+compiler: "gcc";
+
+target rusty:
+    name: "rusty";
+    type: executable;
+    flags: { "-Wall" };
+    output: ".";
+    file: "mpc.c";
+    file: "rusty.c";
