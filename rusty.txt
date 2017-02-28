@@ -7,6 +7,9 @@ target rusty:
     output: ".";
     file: "mpc.c";
     file: "rusty.c";
+    depends: "util.h";
+    depends: "dirent.h";
+    depends: "arg.h";
     
 if(linux)
 {

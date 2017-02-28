@@ -80,6 +80,7 @@ typedef struct
     char* output;
     target_type type;
     llist* files;
+    llist* depends;
     llist* flags;
 } target;
 typedef struct
@@ -493,6 +494,7 @@ void parse()
     parser type = mpc_new("type");
     parser flags = mpc_new("flags");
     parser file = mpc_new("file");
+    parser depends = mpc_new("depends");
     parser dir = mpc_new("dir");
     parser output = mpc_new("output");
     parser target = mpc_new("target");
@@ -508,15 +510,16 @@ void parse()
               "type    : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
               "flags   : \"flags\" ':' '{' <string> (',' <string>)* '}' ';' ;                       \n"
               "file    : \"file\" ':' <string> ';' ;                                                \n"
+              "depends : \"depends\" ':' <string> ';' ;                                             \n"
               "dir     : \"dir\" ':' <string> ';' ;                                                 \n"
               "output  : \"output\" ':' <string> ';' ;                                              \n"
               "target  : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
-              "        (<file>|<dir>)+ ;                                                            \n"
+              "        (<file>|<dir>|<depends>)+ ;                                                  \n"
               "os      : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
               "system  : \"if\" '(' <os> ')' '{' <target>+ '}' ;                                    \n"
               "compiler: \"compiler\" ':' <string> ';' ;                                            \n"
-              "rusty   : /^/ <compiler> (<target> | <system>)+ /$/ ;                                             \n"
-              , ident, string, name, type, flags, file, dir, output, target, os, system, compiler, rusty, NULL);
+              "rusty   : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
+              , ident, string, name, type, flags, file, depends, dir, output, target, os, system, compiler, rusty, NULL);
 
     if(mpc_parse_contents("rusty.txt", rusty, &r))
     {
@@ -539,7 +542,7 @@ void parse()
         printf("^\n" ANSI_RESET);
         mpc_err_delete(r.error);
     }
-    mpc_cleanup(12, ident, string, name, type, flags, file, dir, output, target, os, system, compiler, rusty);
+    mpc_cleanup(14, ident, string, name, type, flags, file, depends, dir, output, target, os, system, compiler, rusty);
 }
 
 void read_ast(mpc_ast_t* ast)
@@ -558,6 +561,7 @@ void read_trg(mpc_ast_t* ast)
     target* trg = malloc(sizeof(target));
     trg->files = NULL;
     trg->output = NULL;
+    trg->depends = NULL;
     trg->ident = ast->children[1]->contents;
     for (int32 i = 0; i < ast->children_num; i++)
     {
@@ -567,6 +571,11 @@ void read_trg(mpc_ast_t* ast)
         {
             if(trg->files) llist_put(trg->files, get_string(ast->children[i]));
             else trg->files = llist_new(get_string(ast->children[i]));
+        }
+        if(strcmp(ast->children[i]->tag, "depends|>") == 0)
+        {
+            if(trg->depends) llist_put(trg->depends, get_string(ast->children[i]));
+            else trg->depends = llist_new(get_string(ast->children[i]));
         }
         if(strcmp(ast->children[i]->tag, "dir|>") == 0) read_dir(trg, get_string(ast->children[i]));
         if(strcmp(ast->children[i]->tag, "flags|>") == 0) read_flags(ast->children[i], trg);
@@ -686,6 +695,14 @@ void builder(llist* buildtargets)
             asprintf(&msg, "file %s does not exist or cannot be read", llist_get(current->files, j, 0));
             builderror(msg);
         }
+        for(int32 j = 0; j < llist_total(current->depends, 0); j++)
+        {
+            if(access(llist_get(current->depends, j, 0), R_OK) == 0) continue;
+            errors++;
+            char* msg;
+            asprintf(&msg, "file %s does not exist or cannot be read", llist_get(current->depends, j, 0));
+            builderror(msg);
+        }
     }
     if(errors) error("one or more files were not accessible, aborting");
     //step 3 - compile each file to an object file
@@ -699,13 +716,17 @@ void builder(llist* buildtargets)
         char* dir;
         asprintf(&dir, "object/%s", current->ident);
         emkdir(dir, ALLPERMS);
+
+        int8 depends_okay = 1;
+        for(int32 j = 0; j < llist_total(current->depends, 0); j++)
+            if(modified(llist_get(current->depends, j, 0))) { depends_okay = 0; break; }
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
             char* path;
             asprintf(&path, "object/%s/%s.o",
                      current->ident,
                      filename(llist_get(current->files, j, 0)));
-            if(!access(path, R_OK) && !modified(llist_get(current->files, j, 0))) continue;
+            if(!access(path, R_OK) && !modified(llist_get(current->files, j, 0)) && depends_okay) continue;
             printf(ANSI_GREEN "\tbuilding file" ANSI_YELLOW " %s\n" ANSI_RESET, (char*)llist_get(current->files, j, 0));
             char* cmd;
             char* flags = " ";
