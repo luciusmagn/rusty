@@ -48,6 +48,19 @@
 #define PATH_C '/'
 #endif
 
+
+#ifdef _WIN32
+#define OS "windows"
+#elif __APPLE__
+#define OS "osx"
+#elif __linux__
+#define OS "linux"
+#elif __unix__
+#define OS "unix"
+#else
+#define OS "other"
+#endif
+
 //types
 typedef enum
 {
@@ -104,6 +117,7 @@ void parse();
 
 void read_ast(mpc_ast_t*);
 void read_trg(mpc_ast_t*);
+void read_if(mpc_ast_t*);
 void read_flags(mpc_ast_t*, target*);
 void read_type(mpc_ast_t*, target*);
 void read_dir(target*,char*);
@@ -482,6 +496,7 @@ void parse()
     parser dir = mpc_new("dir");
     parser output = mpc_new("output");
     parser target = mpc_new("target");
+    parser os = mpc_new("os");
     parser system = mpc_new("system");
     parser compiler = mpc_new("compiler");
     parser rusty = mpc_new("rusty");
@@ -497,10 +512,11 @@ void parse()
               "output  : \"output\" ':' <string> ';' ;                                              \n"
               "target  : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
               "        (<file>|<dir>)+ ;                                                            \n"
-              "system  : \"if\" '(' (\"windows\"|\"osx\"|\"unix\") ')' '{' <target>+ '}' ;          \n"
+              "os      : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
+              "system  : \"if\" '(' <os> ')' '{' <target>+ '}' ;                                    \n"
               "compiler: \"compiler\" ':' <string> ';' ;                                            \n"
-              "rusty   : /^/ <compiler> <target>+ /$/ ;                                             \n"
-              , ident, string, name, type, flags, file, dir, output, target, system, compiler, rusty, NULL);
+              "rusty   : /^/ <compiler> (<target> | <system>)+ /$/ ;                                             \n"
+              , ident, string, name, type, flags, file, dir, output, target, os, system, compiler, rusty, NULL);
 
     if(mpc_parse_contents("rusty.txt", rusty, &r))
     {
@@ -523,7 +539,7 @@ void parse()
         printf("^\n" ANSI_RESET);
         mpc_err_delete(r.error);
     }
-    mpc_cleanup(12, ident, string, name, type, flags, file, dir, output, target, system, compiler, rusty);
+    mpc_cleanup(12, ident, string, name, type, flags, file, dir, output, target, os, system, compiler, rusty);
 }
 
 void read_ast(mpc_ast_t* ast)
@@ -533,6 +549,7 @@ void read_ast(mpc_ast_t* ast)
     for(int32 i = 0; i < ast->children_num; i++)
     {
         if(strcmp(ast->children[i]->tag, "target|>") == 0) read_trg(ast->children[i]);
+        if(strcmp(ast->children[i]->tag, "system|>") == 0) read_if(ast->children[i]);
     }
 }
 
@@ -558,6 +575,13 @@ void read_trg(mpc_ast_t* ast)
 
     if(!targets) targets = llist_new(trg);
     else llist_put(targets, trg);
+}
+
+void read_if(mpc_ast_t* ast)
+{
+    if(strcmp(ast->children[2]->contents, OS) != 0) return;
+    for(int32 i = 0; i < ast->children_num; i++) 
+        if(strcmp(ast->children[i]->tag, "target|>") == 0) read_trg(ast->children[i]);
 }
 
 void read_flags(mpc_ast_t* ast,target* trg)
@@ -598,7 +622,7 @@ void read_dir(target* trg, char* name)
         //have to exclude . and .. and check for read permission
         if(access(path, R_OK) == 0 && strcmp(ent->d_name, "..")
                 && strcmp(ent->d_name, ".")
-                && (  strstr(ent->d_name, ".c")
+                && (    strstr(ent->d_name, ".c")
                       ||strstr(ent->d_name, ".m")
                       ||strstr(ent->d_name, ".mm")
                       ||strstr(ent->d_name, ".M")
@@ -814,7 +838,7 @@ int8 option(char** argv, int* argc)
 {
     if(!argv[0]) return 1;
     
-    puts(argv[0]);
+    //puts(argv[0]);
          if(strcmp(argv[0], "--ast") == 0) opts->printast = 1;
     else if(strcmp(argv[0], "--info") == 0) opts->printinfo = 1;
     else if(strcmp(argv[0], "--help") == 0) printhelp();

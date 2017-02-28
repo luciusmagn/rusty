@@ -7,3 +7,31 @@ target rusty:
     output: ".";
     file: "mpc.c";
     file: "rusty.c";
+    
+if(linux)
+{
+    target test:
+        name: "testc";
+        type: executable;
+        flags: { "-Wall" };
+        output: ".";
+        file: "test/test.c";
+}
+if(unix)
+{
+    target test:
+        name: "testc1";
+        type: executable;
+        flags: { "-Wall" };
+        output: ".";
+        file: "test/test.c";
+}
+if(osx)
+{
+    target test:
+        name: "testc2";
+        type: executable;
+        flags: { "-Wall" };
+        output: ".";
+        file: "test/test.c";
+}
