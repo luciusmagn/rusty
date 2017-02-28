@@ -18,7 +18,7 @@ if(windows)
         file: "mpc.c";
         file: "rusty.c";
 }
-else
+if(linux)
 {
     target rusty_:
         name: "rusty";

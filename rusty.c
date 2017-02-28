@@ -27,7 +27,7 @@
 #define emkdir(x,y)  do { if(mkdir(x,y) && access(x, F_OK)) {      \
                             char* msg; asprintf(&msg,"unable to create directory \"%s\"", x);\
                             builderror(msg);\
-                            }} while(0)     
+                            }} while(0)
 #define parser       mpc_parser_t*
 #define entry        struct dirent*
 #define MAX_DEPTH    10
@@ -88,6 +88,7 @@ typedef struct
     int8 fullrebuild;
     int8 printast;
     int8 printinfo;
+    int8 verbose;
 } options;
 
 //functions
@@ -443,35 +444,38 @@ llist* wanted = NULL;
 int32 main(int32 argc, char* argv[])
 {
     opts = calloc(1, sizeof(options));
-    
+
     if(argc == 1) wanted = llist_new("all");
-    
+
     ARGBEGIN
     {
-    	case 'h':
-    		printhelp();
-    		break;
-    	case 'd':
-    		chdir((++argv)[0]);
-    		break;
-    	case 'r':
-    		opts->fullrebuild = 1;
-    		break; 
-    	case 'i':
-    		opts->printinfo = 1;
-    		break;
+        case 'h':
+            printhelp();
+            break;
+        case 'd':
+            chdir((++argv)[0]);
+            break;
+        case 'r':
+            opts->fullrebuild = 1;
+            break;
+        case 'i':
+            opts->printinfo = 1;
+            break;
         case 'a':
             opts->printast = 1;
             break;
         case 'o':
             output_path = (++argv)[0];
             break;
-	    default:
-    		printf("unrecognized option: %c\n", ARGC());
-    		break;
+        case 'v':
+            opts->verbose = 1;
+            break;
+        default:
+            printf("unrecognized option: %c\n", ARGC());
+            break;
     }
     ARGEND
-    
+
     int32 i = 10;
     while(access("rusty.txt", R_OK) != 0)
     {
@@ -589,7 +593,7 @@ void read_trg(mpc_ast_t* ast)
 void read_if(mpc_ast_t* ast)
 {
     if(strcmp(ast->children[2]->contents, OS) != 0) return;
-    for(int32 i = 0; i < ast->children_num; i++) 
+    for(int32 i = 0; i < ast->children_num; i++)
         if(strcmp(ast->children[i]->tag, "target|>") == 0) read_trg(ast->children[i]);
 }
 
@@ -719,7 +723,8 @@ void builder(llist* buildtargets)
 
         int8 depends_okay = 1;
         for(int32 j = 0; j < llist_total(current->depends, 0); j++)
-            if(modified(llist_get(current->depends, j, 0))) { depends_okay = 0; break; }
+            if(modified(llist_get(current->depends, j, 0))) { if(opts->verbose) puts(ANSI_BLUE "dependent file modified, rebuilding...");
+                depends_okay = 0; break; }
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
             char* path;
@@ -727,6 +732,7 @@ void builder(llist* buildtargets)
                      current->ident,
                      filename(llist_get(current->files, j, 0)));
             if(!access(path, R_OK) && !modified(llist_get(current->files, j, 0)) && depends_okay) continue;
+            if(opts->verbose && depends_okay) printf(ANSI_BLUE "source file %s modified, recompiling...\n", (char*)llist_get(current->files, j, 0));
             printf(ANSI_GREEN "\tbuilding file" ANSI_YELLOW " %s\n" ANSI_RESET, (char*)llist_get(current->files, j, 0));
             char* cmd;
             char* flags = " ";
@@ -740,6 +746,7 @@ void builder(llist* buildtargets)
                      flags,
                      current->ident,
                      filename(llist_get(current->files, j, 0)));
+            if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s\n" ANSI_RESET, cmd);
             if(system(cmd))
             {
                 errors++;
@@ -776,8 +783,8 @@ void linker(llist* linktargets)
             asprintf(&flags, "%s %s", flags, llist_get(current->flags, j, 0));
         }
         char* cmd;
-	char* path = (output_path ? output_path : "output");
-	//TODO puts(path);
+    char* path = (output_path ? output_path : "output");
+    //TODO puts(path);
         if(current->output) path = current->output;
         switch(current->type)
         {
@@ -804,14 +811,14 @@ void linker(llist* linktargets)
                 chdir(path);
                 asprintf(&cmd, "ar -rcs %s.a %s", current->name, list2);
             }
-            else 
+            else
             {
                 char* path;
                 asprintf(&path, "output/%s", current->ident);
                 chdir(path);
                 asprintf(&cmd, "ar -rcs %s.a %s", current->name, list2);
             }
-                  
+            if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s\n", cmd);
             if(system(cmd))
             {
                 errors++;
@@ -822,6 +829,7 @@ void linker(llist* linktargets)
         }
         printf(ANSI_MAGENTA "linking target" ANSI_YELLOW " %s\n" ANSI_RESET, current->ident);
         if(current->type != LIBSTATIC);
+        if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s\n" ANSI_RESET, cmd);
         if(system(cmd))
         {
             errors++;
@@ -850,6 +858,11 @@ void handleopts()
             {
                 printf("%s,", (char*)llist_get(trg->flags, j, 0));
             }
+            printf(ANSI_BLUE "\ndepends:" ANSI_RESET);
+            for(int32 j = 0; j < llist_total(trg->depends, 0); j++)
+            {
+                printf("%s,", (char*)llist_get(trg->depends, j, 0));
+            }
             printf("\n");
         }
     }
@@ -858,7 +871,7 @@ void handleopts()
 int8 option(char** argv, int* argc)
 {
     if(!argv[0]) return 1;
-    
+    if(argv[0][0] == '-' && strlen(argv[0]) > 1 && argv[0][1] != '-') return 1;
     //puts(argv[0]);
          if(strcmp(argv[0], "--ast") == 0) opts->printast = 1;
     else if(strcmp(argv[0], "--info") == 0) opts->printinfo = 1;
@@ -866,16 +879,11 @@ int8 option(char** argv, int* argc)
     else if(strcmp(argv[0], "--about") == 0) printabout();
     else if(strcmp(argv[0], "--fullrebuild") == 0) opts->fullrebuild = 1;
     else if(strcmp(argv[0], "clean") == 0) cleanup();
-    
-    if(argv[1])
-    {
-             if(strcmp(argv[0], "--compiler") == 0) { compiler = (++argv)[0]; (*argc)++; }
-        else if(strcmp(argv[0], "--output") == 0) { output_path = (++argv)[0]; (*argc)++; }
-        else if(strcmp(argv[0], "--dir") == 0) { chdir((++argv)[0]); (*argc)++; }
-    }
-    
-    if(strncmp(argv[0], "--", 2) == 0) printf("unrecognized option: %s\n", argv[0]);
-    else 
+    else if(strcmp(argv[0], "--compiler") == 0 && argv[1]) { compiler = (++argv)[0]; (*argc)++; }
+    else if(strcmp(argv[0], "--output") == 0 && argv[1]) { output_path = (++argv)[0]; (*argc)++; }
+    else if(strcmp(argv[0], "--dir") == 0 && argv[1]) { chdir((++argv)[0]); (*argc)++; }
+    else if(strncmp(argv[0], "--", 2) == 0) printf("unrecognized option: %s\n", argv[0]);
+    else
     {
         if(!wanted) wanted = llist_new(argv[0]);
         else llist_put(wanted, argv[0]);
@@ -898,7 +906,7 @@ void printhelp()
 
 void printabout()
 {
-    puts("Rusty build system, v0.2                                     \n");
+    puts("Rusty build system, v0.4                                     \n");
     puts("Rusty is a simple build system, which borrows its syntax       ");
     puts("from C2's (github.com/c2lang/c2compiler, c2lang.org) built-in  ");
     puts("build system. Rusty uses Daniel Holden's (orangeduck's) mpc    ");
