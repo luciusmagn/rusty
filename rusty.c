@@ -517,8 +517,8 @@ void parse()
               "string  : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                              \n"
               "name    : \"name\" ':' <string> ';' ;                                                \n"
               "type    : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
-              "flags   : \"flags\" ':' '{' <string> (',' <string>)* '}' ';' ;                       \n"
-              "install : \"install\" ':' '{' <string> (',' <string>)* '}' ';' ;                     \n"
+              "flags   : \"flags\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                  \n"
+              "install : \"install\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                \n"
               "file    : \"file\" ':' <string> ';' ;                                                \n"
               "depends : \"depends\" ':' <string> ';' ;                                             \n"
               "dir     : \"dir\" ':' <string> ';' ;                                                 \n"
@@ -541,7 +541,7 @@ void parse()
         mpc_err_print(r.error);
         char* file = readfile("rusty.txt");
         char* line = get_line(file, r.error->state.row);
-        printf(ANSI_YELLOW "%s\n" ANSI_RESET, line);
+        printf(ANSI_YELLOW "%s" ANSI_RESET "\n", line);
         int32 i = 0;
         printf(ANSI_GREEN);
         while (i < r.error->state.col)
@@ -739,7 +739,7 @@ void builder(llist* buildtargets)
     {
         target* current = llist_get(targets, i, 0);
         if(!searchstr(buildtargets, current->ident) && !searchstr(buildtargets, "all")) continue;
-        printf(ANSI_MAGENTA "building target: " ANSI_YELLOW "%s\n" ANSI_RESET, current->ident);
+        printf(ANSI_MAGENTA "building target: " ANSI_YELLOW "%s" ANSI_RESET "\n", current->ident);
         char* dir;
         asprintf(&dir, "object/%s", current->ident);
         emkdir(dir, ALLPERMS);
@@ -756,7 +756,7 @@ void builder(llist* buildtargets)
                      filename(llist_get(current->files, j, 0)));
             if(!access(path, R_OK) && !modified(llist_get(current->files, j, 0)) && depends_okay) continue;
             if(opts->verbose && depends_okay) printf(ANSI_BLUE "source file %s modified, recompiling...\n", (char*)llist_get(current->files, j, 0));
-            printf(ANSI_GREEN "\tbuilding file" ANSI_YELLOW " %s\n" ANSI_RESET, (char*)llist_get(current->files, j, 0));
+            printf(ANSI_GREEN "\tbuilding file" ANSI_YELLOW " %s" ANSI_RESET "\n" , (char*)llist_get(current->files, j, 0));
             char* cmd;
             char* flags = " ";
             for(int32 j = 0; j < llist_total(current->flags, 0); j++)
@@ -769,16 +769,16 @@ void builder(llist* buildtargets)
                      flags,
                      current->ident,
                      filename(llist_get(current->files, j, 0)));
-            if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s\n" ANSI_RESET, cmd);
+            if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", cmd);
             if(system(cmd))
             {
                 errors++;
-                printf(ANSI_RED "\tfailed to build file " ANSI_YELLOW "%s\n" ANSI_RESET, (char*)llist_get(current->files, j, 0));
+                printf(ANSI_RED "\tfailed to build file " ANSI_YELLOW "%s" ANSI_RESET "\n", (char*)llist_get(current->files, j, 0));
             }
         }
         if(errors)
         {
-            printf(ANSI_RED "failed to build target " ANSI_YELLOW "%s\n" ANSI_RESET, current->ident);
+            printf(ANSI_RED "failed to build target " ANSI_YELLOW "%s" ANSI_RESET "\n" , current->ident);
         }
     }
     if(errors) error("failed to build one or more targets, aborting");
@@ -841,22 +841,22 @@ void linker(llist* linktargets)
                 chdir(path);
                 asprintf(&cmd, "ar -rcs %s.a %s", current->name, list2);
             }
-            if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s\n", cmd);
+            if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", cmd);
             if(system(cmd))
             {
                 errors++;
-                printf(ANSI_RED "failed to link target " ANSI_YELLOW "%s\n" ANSI_RESET, current->ident);
+                printf(ANSI_RED "failed to link target " ANSI_YELLOW "%s" ANSI_RESET "\n", current->ident);
             }
             chdir(cwd);
             break;
         }
-        printf(ANSI_MAGENTA "linking target" ANSI_YELLOW " %s\n" ANSI_RESET, current->ident);
+        printf(ANSI_MAGENTA "linking target" ANSI_YELLOW " %s" ANSI_RESET "\n", current->ident);
         if(current->type != LIBSTATIC);
-        if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s\n" ANSI_RESET, cmd);
+        if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", cmd);
         if(system(cmd))
         {
             errors++;
-            printf(ANSI_RED "failed to link target " ANSI_YELLOW "%s\n" ANSI_RESET, current->ident);
+            printf(ANSI_RED "failed to link target " ANSI_YELLOW "%s" ANSI_RESET "\n", current->ident);
         }
     }
     if(errors) error("failed to link one or more targets");
