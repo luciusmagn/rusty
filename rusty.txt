@@ -10,7 +10,10 @@ target rusty:
     depends: "util.h";
     depends: "dirent.h";
     depends: "arg.h";
-    
+    install: {
+     "echo hello ello test test"
+    };
+
 if(linux)
 {
     target test:

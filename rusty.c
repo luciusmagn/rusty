@@ -82,6 +82,7 @@ typedef struct
     llist* files;
     llist* depends;
     llist* flags;
+    llist* install;
 } target;
 typedef struct
 {
@@ -89,6 +90,7 @@ typedef struct
     int8 printast;
     int8 printinfo;
     int8 verbose;
+    int8 install;
 } options;
 
 //functions
@@ -121,12 +123,14 @@ void read_ast(mpc_ast_t*);
 void read_trg(mpc_ast_t*);
 void read_if(mpc_ast_t*);
 void read_flags(mpc_ast_t*, target*);
+void read_install(mpc_ast_t*,target*);
 void read_type(mpc_ast_t*, target*);
 void read_dir(target*,char*);
 
 void process(llist*);
 void builder(llist*);
 void linker(llist*);
+void install(llist*);
 
 void cleanup();
 void handleopts();
@@ -497,6 +501,7 @@ void parse()
     parser name = mpc_new("name");
     parser type = mpc_new("type");
     parser flags = mpc_new("flags");
+    parser install = mpc_new("install");
     parser file = mpc_new("file");
     parser depends = mpc_new("depends");
     parser dir = mpc_new("dir");
@@ -513,17 +518,18 @@ void parse()
               "name    : \"name\" ':' <string> ';' ;                                                \n"
               "type    : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
               "flags   : \"flags\" ':' '{' <string> (',' <string>)* '}' ';' ;                       \n"
+              "install : \"install\" ':' '{' <string> (',' <string>)* '}' ';' ;                     \n"
               "file    : \"file\" ':' <string> ';' ;                                                \n"
               "depends : \"depends\" ':' <string> ';' ;                                             \n"
               "dir     : \"dir\" ':' <string> ';' ;                                                 \n"
               "output  : \"output\" ':' <string> ';' ;                                              \n"
               "target  : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
-              "        (<file>|<dir>|<depends>)+ ;                                                  \n"
+              "        (<file>|<dir>|<depends>|<install>)+ ;                                        \n"
               "os      : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
               "system  : \"if\" '(' <os> ')' '{' <target>+ '}' ;                                    \n"
               "compiler: \"compiler\" ':' <string> ';' ;                                            \n"
               "rusty   : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
-              , ident, string, name, type, flags, file, depends, dir, output, target, os, system, compiler, rusty, NULL);
+              , ident, string, name, type, flags, install, file, depends, dir, output, target, os, system, compiler, rusty, NULL);
 
     if(mpc_parse_contents("rusty.txt", rusty, &r))
     {
@@ -546,7 +552,7 @@ void parse()
         printf("^\n" ANSI_RESET);
         mpc_err_delete(r.error);
     }
-    mpc_cleanup(14, ident, string, name, type, flags, file, depends, dir, output, target, os, system, compiler, rusty);
+    mpc_cleanup(15, ident, string, name, type, flags, install, file, depends, dir, output, target, os, system, compiler, rusty);
 }
 
 void read_ast(mpc_ast_t* ast)
@@ -566,6 +572,8 @@ void read_trg(mpc_ast_t* ast)
     trg->files = NULL;
     trg->output = NULL;
     trg->depends = NULL;
+    trg->install = NULL;
+    trg->flags = NULL;
     trg->ident = ast->children[1]->contents;
     for (int32 i = 0; i < ast->children_num; i++)
     {
@@ -583,6 +591,7 @@ void read_trg(mpc_ast_t* ast)
         }
         if(strcmp(ast->children[i]->tag, "dir|>") == 0) read_dir(trg, get_string(ast->children[i]));
         if(strcmp(ast->children[i]->tag, "flags|>") == 0) read_flags(ast->children[i], trg);
+        if(strcmp(ast->children[i]->tag, "install|>") == 0) read_install(ast->children[i], trg);
         if(strcmp(ast->children[i]->tag, "type|>") == 0) read_type(ast->children[i], trg);
     }
 
@@ -606,6 +615,19 @@ void read_flags(mpc_ast_t* ast,target* trg)
         {
             if(trg->flags) llist_put(trg->flags, ast->children[i]->children[1]->contents);
             else trg->flags = llist_new(ast->children[i]->children[1]->contents);
+        }
+    }
+}
+
+void read_install(mpc_ast_t* ast,target* trg)
+{
+    trg->flags = NULL;
+    for(int32 i = 0; i < ast->children_num; i++)
+    {
+        if(strcmp(ast->children[i]->tag, "string|>") == 0)
+        {
+            if(trg->install) llist_put(trg->flags, ast->children[i]->children[1]->contents);
+            else trg->install = llist_new(ast->children[i]->children[1]->contents);
         }
     }
 }
@@ -663,6 +685,7 @@ void process(llist* wanted)
     handleopts();
     builder(wanted);
     linker(wanted);
+    install(wanted);
     return;
 }
 
@@ -839,6 +862,22 @@ void linker(llist* linktargets)
     if(errors) error("failed to link one or more targets");
 }
 
+void install(llist* installtargets)
+{
+    puts("what");
+    if(opts->install)
+    for(int32 i = 0; i < llist_total(targets, 0); i++)
+    {
+        target* current = llist_get(targets, i, 0);
+        if(!searchstr(installtargets, current->ident) && !searchstr(installtargets, "all")) continue;
+        puts("what what");
+        for(int32 j = 0; j < llist_total(current->install, 0); j++)
+        {
+            if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", (char*)llist_get(current->install, j, 0));
+            system((const char*)llist_get(current->install, j, 0));
+        }
+    }
+}
 void handleopts()
 {
     if(opts->printast) mpc_ast_print(tree);
@@ -879,6 +918,7 @@ int8 option(char** argv, int* argc)
     else if(strcmp(argv[0], "--about") == 0) printabout();
     else if(strcmp(argv[0], "--fullrebuild") == 0) opts->fullrebuild = 1;
     else if(strcmp(argv[0], "clean") == 0) cleanup();
+    else if(strcmp(argv[0], "install") == 0) opts->install = 1;
     else if(strcmp(argv[0], "--compiler") == 0 && argv[1]) { compiler = (++argv)[0]; (*argc)++; }
     else if(strcmp(argv[0], "--output") == 0 && argv[1]) { output_path = (++argv)[0]; (*argc)++; }
     else if(strcmp(argv[0], "--dir") == 0 && argv[1]) { chdir((++argv)[0]); (*argc)++; }
