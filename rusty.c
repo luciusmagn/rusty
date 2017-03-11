@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <ctype.h>
 #include <errno.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -75,6 +76,7 @@ typedef struct _llist
 } llist;
 typedef struct
 {
+    int8 built;
     char* ident;
     char* name;
     char* output;
@@ -83,6 +85,7 @@ typedef struct
     llist* depends;
     llist* flags;
     llist* install;
+    llist* link;
 } target;
 typedef struct
 {
@@ -91,6 +94,7 @@ typedef struct
     int8 printinfo;
     int8 verbose;
     int8 install;
+    int8 time;
 } options;
 
 //functions
@@ -447,8 +451,8 @@ llist* wanted = NULL;
 
 int32 main(int32 argc, char* argv[])
 {
+    clock_t begin = clock();
     opts = calloc(1, sizeof(options));
-
     if(argc == 1) wanted = llist_new("all");
 
     ARGBEGIN
@@ -471,6 +475,9 @@ int32 main(int32 argc, char* argv[])
         case 'o':
             output_path = (++argv)[0];
             break;
+        case 't':
+            opts->time = 1;
+            break;
         case 'v':
             opts->verbose = 1;
             break;
@@ -489,6 +496,8 @@ int32 main(int32 argc, char* argv[])
     parse();
     if(!wanted) wanted = llist_new("all");
     process(wanted);
+    clock_t end = clock();
+    if(opts->time) printf("execution time: %f seconds\n", (double)(end - begin) / CLOCKS_PER_SEC);
     return 0;
 }
 
@@ -504,9 +513,12 @@ void parse()
     parser install = mpc_new("install");
     parser file = mpc_new("file");
     parser depends = mpc_new("depends");
+    parser link = mpc_new("link");
+    parser buildtrg = mpc_new("buildtrg");
     parser dir = mpc_new("dir");
     parser output = mpc_new("output");
     parser target = mpc_new("target");
+    parser build = mpc_new("build");
     parser os = mpc_new("os");
     parser system = mpc_new("system");
     parser compiler = mpc_new("compiler");
@@ -521,15 +533,18 @@ void parse()
               "install : \"install\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                \n"
               "file    : \"file\" ':' <string> ';' ;                                                \n"
               "depends : \"depends\" ':' <string> ';' ;                                             \n"
+              "link    : \"link\" ':' <ident> ';' ;                                                 \n"
+              "buildtrg: \"build\" ':' <ident> ';' ;                                                \n"
               "dir     : \"dir\" ':' <string> ';' ;                                                 \n"
               "output  : \"output\" ':' <string> ';' ;                                              \n"
               "target  : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
-              "        (<file>|<dir>|<depends>|<install>)+ ;                                        \n"
+              "        (<file>|<dir>|<depends>|<install>|<link>)+ ;                                 \n"
+              "build   : \"build\" <ident> ':' <name> <type>? ';' ;                                 \n"
               "os      : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
               "system  : \"if\" '(' <os> ')' '{' <target>+ '}' ;                                    \n"
               "compiler: \"compiler\" ':' <string> ';' ;                                            \n"
               "rusty   : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
-              , ident, string, name, type, flags, install, file, depends, dir, output, target, os, system, compiler, rusty, NULL);
+              , ident, string, name, type, flags, install, file, depends, link, buildtrg, dir, output, target, build, os, system, compiler, rusty, NULL);
 
     if(mpc_parse_contents("rusty.txt", rusty, &r))
     {
@@ -539,20 +554,10 @@ void parse()
     else
     {
         mpc_err_print(r.error);
-        char* file = readfile("rusty.txt");
-        char* line = get_line(file, r.error->state.row);
-        printf(ANSI_YELLOW "%s" ANSI_RESET "\n", line);
-        int32 i = 0;
-        printf(ANSI_GREEN);
-        while (i < r.error->state.col)
-        {
-            printf(" ");
-            i++;
-        }
-        printf("^\n" ANSI_RESET);
         mpc_err_delete(r.error);
+        exit(-1);
     }
-    mpc_cleanup(15, ident, string, name, type, flags, install, file, depends, dir, output, target, os, system, compiler, rusty);
+    mpc_cleanup(18, ident, string, name, type, flags, install, file, depends, link, buildtrg, dir, output, target, build, os, system, compiler, rusty);
 }
 
 void read_ast(mpc_ast_t* ast)
@@ -569,11 +574,13 @@ void read_ast(mpc_ast_t* ast)
 void read_trg(mpc_ast_t* ast)
 {
     target* trg = malloc(sizeof(target));
+    trg->built = 0;
     trg->files = NULL;
     trg->output = NULL;
     trg->depends = NULL;
     trg->install = NULL;
     trg->flags = NULL;
+    trg->link = NULL;
     trg->ident = ast->children[1]->contents;
     for (int32 i = 0; i < ast->children_num; i++)
     {
@@ -588,6 +595,11 @@ void read_trg(mpc_ast_t* ast)
         {
             if(trg->depends) llist_put(trg->depends, get_string(ast->children[i]));
             else trg->depends = llist_new(get_string(ast->children[i]));
+        }
+        if(strcmp(ast->children[i]->tag, "link|>") == 0)
+        {
+            if(trg->link) llist_put(trg->link, ast->children[i]->children[2]->contents);
+            else trg->link = llist_new(ast->children[i]->children[2]->contents);
         }
         if(strcmp(ast->children[i]->tag, "dir|>") == 0) read_dir(trg, get_string(ast->children[i]));
         if(strcmp(ast->children[i]->tag, "flags|>") == 0) read_flags(ast->children[i], trg);
@@ -780,6 +792,7 @@ void builder(llist* buildtargets)
         {
             printf(ANSI_RED "failed to build target " ANSI_YELLOW "%s" ANSI_RESET "\n" , current->ident);
         }
+        current->built = 1;
     }
     if(errors) error("failed to build one or more targets, aborting");
 }
@@ -792,6 +805,7 @@ void linker(llist* linktargets)
     {
         target* current = llist_get(targets, i, 0);
         if(!searchstr(linktargets, current->ident) && !searchstr(linktargets, "all")) continue;
+        printf(ANSI_MAGENTA "linking target" ANSI_YELLOW " %s" ANSI_RESET "\n", current->ident);
         char* dir;
         asprintf(&dir, "output/%s", current->name);
         mkdir(dir, ALLPERMS);
@@ -799,6 +813,35 @@ void linker(llist* linktargets)
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
             asprintf(&list, "%s object/%s/%s.o ", list, current->ident, filename(llist_get(current->files, j, 0)));
+        }
+        for(int32 j = 0; j < llist_total(current->link, 0); j++)
+        {
+            char* name = llist_get(current->link, j, 0);
+            target* trg;
+            int8 found = 0;
+            for(int32 k = 0; k < llist_total(targets, 0); k++)
+            {
+                if(strcmp(((target*)llist_get(targets, k, 0))->ident, name) == 0)
+                    { found = 1; trg = (target*)llist_get(targets, k, 0); break; }
+            }
+            if(!found)
+            {
+                errors++;
+                printf(ANSI_RED "target not found:" ANSI_YELLOW "%s" ANSI_RESET "\n", name);
+                printf(ANSI_RED "unable to link a non-existing target\n" ANSI_RESET);
+                break;
+            }
+            if(!trg->built)
+            {
+                printf("target \"%s\" not built yet, building...", trg->ident);
+                builder(llist_new(trg->ident));
+            }
+            for(int32 k = 0; k < llist_total(trg->files, 0); k++)
+            {
+                asprintf(&list, "%s object/%s/%s.o ", list, trg->ident, filename(llist_get(trg->files, k, 0)));
+                puts(list);
+            }
+            printf(ANSI_GREEN "\tlinked with: " ANSI_YELLOW "%s" ANSI_RESET "\n", name);
         }
         char* flags = " ";
         for(int32 j = 0; j < llist_total(current->flags, 0); j++)
@@ -850,7 +893,6 @@ void linker(llist* linktargets)
             chdir(cwd);
             break;
         }
-        printf(ANSI_MAGENTA "linking target" ANSI_YELLOW " %s" ANSI_RESET "\n", current->ident);
         if(current->type != LIBSTATIC);
         if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", cmd);
         if(system(cmd))
@@ -864,13 +906,11 @@ void linker(llist* linktargets)
 
 void install(llist* installtargets)
 {
-    puts("what");
     if(opts->install)
     for(int32 i = 0; i < llist_total(targets, 0); i++)
     {
         target* current = llist_get(targets, i, 0);
         if(!searchstr(installtargets, current->ident) && !searchstr(installtargets, "all")) continue;
-        puts("what what");
         for(int32 j = 0; j < llist_total(current->install, 0); j++)
         {
             if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", (char*)llist_get(current->install, j, 0));
@@ -878,6 +918,7 @@ void install(llist* installtargets)
         }
     }
 }
+
 void handleopts()
 {
     if(opts->printast) mpc_ast_print(tree);
@@ -946,7 +987,7 @@ void printhelp()
 
 void printabout()
 {
-    puts("Rusty build system, v0.4                                     \n");
+    puts("Rusty build system, v0.6                                     \n");
     puts("Rusty is a simple build system, which borrows its syntax       ");
     puts("from C2's (github.com/c2lang/c2compiler, c2lang.org) built-in  ");
     puts("build system. Rusty uses Daniel Holden's (orangeduck's) mpc    ");

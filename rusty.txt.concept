@@ -25,11 +25,11 @@ if(linux)
         type: executable;
         flags: { "-Wall" };
         output: ".";
-        install: 
+        install:
         {
-            "cp ./rusty /usr/bin/rusty";
-            "echo $HOME";
-            "export POTATO=tato";
+            "cp ./rusty /usr/bin/rusty",
+            "echo $HOME",
+            "export POTATO=tato"
         };
         file: "mpc.c";
         file: "rusty.c";

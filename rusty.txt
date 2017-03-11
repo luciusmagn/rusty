@@ -41,3 +41,16 @@ if(osx)
         output: ".";
         file: "test/test.c";
 }
+
+target mpc:
+    name: "mpc";
+    type: libstatic;
+    flags: { "-Wall" };
+    file: "mpc.c";
+
+target linktest:
+    name: "linktest";
+    type: libsharedasd;
+    flags: { "-Wall" };
+    file: "test/test.c";
+    link: mpc;

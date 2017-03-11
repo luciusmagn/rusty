@@ -1,6 +1,10 @@
 .rusty/
 /testc
 /rusty
+/mpc.a
+/linktest.a
+/linktest
+/mpc
 /output
 /object
 /.rusty/mpc.c.sum
