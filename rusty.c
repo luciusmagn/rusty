@@ -526,7 +526,7 @@ void parse()
     parser rusty = mpc_new("rusty");
 
     mpca_lang(MPCA_LANG_DEFAULT,
-              "ident   : /[a-zA-Z0-9]+/ ;                                                           \n"
+              "ident   : /[a-zA-Z0-9_]+/ ;                                                          \n"
               "string  : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                              \n"
               "name    : \"name\" ':' <string> ';' ;                                                \n"
               "type    : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
@@ -760,7 +760,7 @@ void builder(llist* buildtargets)
 
         int8 depends_okay = 1;
         for(int32 j = 0; j < llist_total(current->depends, 0); j++)
-            if(modified(llist_get(current->depends, j, 0))) { if(opts->verbose) puts(ANSI_BLUE "dependent file modified, rebuilding...");
+            if(modified(llist_get(current->depends, j, 0))) { if(opts->verbose) puts(ANSI_BLUE "dependency file modified, rebuilding...");
                 depends_okay = 0; break; }
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
@@ -841,7 +841,6 @@ void linker(llist* linktargets)
             for(int32 k = 0; k < llist_total(trg->files, 0); k++)
             {
                 asprintf(&list, "%s object/%s/%s.o ", list, trg->ident, filename(llist_get(trg->files, k, 0)));
-                puts(list);
             }
             printf(ANSI_GREEN "\tlinked with: " ANSI_YELLOW "%s" ANSI_RESET "\n", name);
         }
@@ -899,7 +898,6 @@ void linker(llist* linktargets)
             while( (ent = readdir(dir)) )
             {
                 if( !(strcmp(ent->d_name, "..") && strcmp(ent->d_name, ".")) ) continue;
-                puts(ent->d_name);
                 FILE *src, *dest;
                 char *src_path, *dest_path, *output_dir;
                 asprintf(&src_path, "object/%s/%s", current->ident, ent->d_name);
@@ -1002,7 +1000,6 @@ int8 option(char** argv, int* argc)
 {
     if(!argv[0]) return 1;
     if(argv[0][0] == '-' && strlen(argv[0]) > 1 && argv[0][1] != '-') return 1;
-    //puts(argv[0]);
          if(strcmp(argv[0], "--ast") == 0) opts->printast = 1;
     else if(strcmp(argv[0], "--info") == 0) opts->printinfo = 1;
     else if(strcmp(argv[0], "--help") == 0) printhelp();
