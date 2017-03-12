@@ -107,7 +107,6 @@ void* llist_get(llist*, int32, int32);
 char* get_line(char*,int32);
 char* get_string(mpc_ast_t*);
 char* adler32(const char*, uint64);
-char* path_join(const char*, const char*);
 char* readfile(const char*);
 char* filename(char*);
 char** strsplit(char*, const char*);
@@ -215,37 +214,6 @@ char* adler32(const char* str, uint64 len)
   char* hex = malloc(sizeof(char) * 10);
   snprintf(hex, 10, "%x", dec);
   return hex;
-}
-
-//path_join(2)
-//Copyright (c) 2013 Stephen Mathieson
-//MIT licensed
-char* path_join(const char *dir, const char *file)
-{
-    int size = strlen(dir) + strlen(file) + 2;
-    char *buf = malloc(size * sizeof(char));
-    if(!buf) return NULL;
-    strcpy(buf, dir);
-    if (!endswith(dir, PATH_JOIN_SEPERATOR))
-    {
-        strcat(buf, PATH_JOIN_SEPERATOR);
-    }
-    if (startswith(file, PATH_JOIN_SEPERATOR))
-    {
-        char *filecopy = strdup(file);
-        if (!filecopy)
-        {
-            free(buf);
-            return NULL;
-        }
-        strcat(buf, ++filecopy);
-        free(--filecopy);
-    }
-    else
-    {
-        strcat(buf, file);
-    }
-    return buf;
 }
 
 char* readfile(const char* filename)
@@ -769,7 +737,8 @@ void builder(llist* buildtargets)
                      current->ident,
                      filename(llist_get(current->files, j, 0)));
             if(!access(path, R_OK) && !modified(llist_get(current->files, j, 0)) && depends_okay) continue;
-            if(opts->verbose && depends_okay) printf(ANSI_BLUE "source file %s modified, recompiling...\n", (char*)llist_get(current->files, j, 0));
+            if(opts->verbose && depends_okay)
+                printf((searchstr(buildtargets, "all") ? ANSI_BLUE "recompiling file %s...\n" : ANSI_BLUE "source file %s modified, recompiling...\n"), (char*)llist_get(current->files, j, 0));
             printf(ANSI_GREEN "\tbuilding file" ANSI_YELLOW " %s" ANSI_RESET "\n" , (char*)llist_get(current->files, j, 0));
             char* cmd;
             char* flags = " ";
