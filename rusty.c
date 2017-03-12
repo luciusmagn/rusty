@@ -67,7 +67,8 @@ typedef enum
 {
     EXECUTABLE,
     LIBSHARED,
-    LIBSTATIC
+    LIBSTATIC,
+    OBJECT
 } target_type;
 typedef struct _llist
 {
@@ -649,6 +650,7 @@ void read_type(mpc_ast_t* ast, target* trg)
     if(strcmp(ast->children[2]->contents, "executable") == 0) trg->type = EXECUTABLE;
     else if(strcmp(ast->children[2]->contents, "libshared") == 0)  trg->type = LIBSHARED;
     else if(strcmp(ast->children[2]->contents, "libstatic") == 0)  trg->type = LIBSTATIC;
+    else if(strcmp(ast->children[2]->contents, "object") == 0) trg->type = OBJECT;
     return;
 }
 
@@ -849,8 +851,7 @@ void linker(llist* linktargets)
             asprintf(&flags, "%s %s", flags, llist_get(current->flags, j, 0));
         }
         char* cmd;
-    char* path = (output_path ? output_path : "output");
-    //TODO puts(path);
+        char* path = (output_path ? output_path : "output");
         if(current->output) path = current->output;
         switch(current->type)
         {
@@ -859,11 +860,10 @@ void linker(llist* linktargets)
             else asprintf(&cmd, "%s %s %s -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
             break;
         case LIBSHARED:
-            if(current->output) asprintf(&cmd, "%s %s %s -static -o %s/%s", compiler, list, flags, path, current->name);
+            if(current->output) asprintf(&cmd, "%s %s %s -static -o %s/%s.so", compiler, list, flags, path, current->name);
             else asprintf(&cmd, "%s %s %s -static -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
             break;
-        case LIBSTATIC:
-            if(0 == 1) fprintf(NULL, "I hate ar and this stupid gcc bug");
+        case LIBSTATIC:; //empty statement to convince C that this is not a label in front of a declaraton
             char cwd[256];
             char *list2 = " ";
             getcwd(cwd, 256);
@@ -892,8 +892,45 @@ void linker(llist* linktargets)
             }
             chdir(cwd);
             break;
+        case OBJECT:; //empty statement to convince C that this is not a label in front of a declaraton
+            char* path; asprintf(&path, "object/%s", current->ident);
+            DIR* dir = opendir(path);
+            entry ent;
+            while( (ent = readdir(dir)) )
+            {
+                if( !(strcmp(ent->d_name, "..") && strcmp(ent->d_name, ".")) ) continue;
+                puts(ent->d_name);
+                FILE *src, *dest;
+                char *src_path, *dest_path, *output_dir;
+                asprintf(&src_path, "object/%s/%s", current->ident, ent->d_name);
+                asprintf(&output_dir, "output/%s", current->ident);
+                mkdir(output_dir, ALLPERMS);
+
+                if(current->output)
+                    asprintf(&dest_path, "%s/%s", current->output, ent->d_name);
+                else
+                    asprintf(&dest_path, "%s/%s/%s", (output_path ? output_path : "output"), current->ident, ent->d_name);
+
+                if( !(src = fopen(src_path, "rb")) ) { errors++; printf(ANSI_RED "can't read " ANSI_YELLOW "%s" ANSI_RESET "\n", src_path); }
+                if( !(dest = fopen(dest_path, "wb")) ) { errors++; printf(ANSI_RED "can't read " ANSI_YELLOW "%s" ANSI_RESET "\n", dest_path); }
+
+                //courtesy of pmg
+                size_t n, m;
+                unsigned char buff[8192];
+                do
+                {
+                    n = fread(buff, 1, sizeof(buff), src);
+                    if (n) m = fwrite(buff, 1, n, dest);
+                    else   m = 0;
+                } while ((n > 0) && (n == m));
+                if (m) printf(ANSI_RED "error copying file" ANSI_RESET "\n");
+
+                fclose(src);
+                fclose(dest);
+            }
+            break;
         }
-        if(current->type != LIBSTATIC);
+        if(current->type == LIBSTATIC || current->type == OBJECT) continue;
         if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", cmd);
         if(system(cmd))
         {
@@ -987,7 +1024,7 @@ void printhelp()
 
 void printabout()
 {
-    puts("Rusty build system, v0.6                                     \n");
+    puts("Rusty build system, v0.7                                     \n");
     puts("Rusty is a simple build system, which borrows its syntax       ");
     puts("from C2's (github.com/c2lang/c2compiler, c2lang.org) built-in  ");
     puts("build system. Rusty uses Daniel Holden's (orangeduck's) mpc    ");
