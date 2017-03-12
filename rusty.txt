@@ -11,8 +11,20 @@ target rusty:
     depends: "dirent.h";
     depends: "arg.h";
     install: {
-     "echo hello ello test test"
+     "cp ./rusty /usr/bin/rusty",
+     "chmod 0777 /usr/bin/rusty"
     };
+
+target rusty_debug:
+    name: "rusty";
+    type: executable;
+    flags: { "-Wall", "-g" };
+    output: ".";
+    file: "mpc.c";
+    file: "rusty.c";
+    depends: "util.h";
+    depends: "dirent.h";
+    depends: "arg.h";
 
 if(linux)
 {
