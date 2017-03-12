@@ -965,6 +965,14 @@ void handleopts()
         {
             target* trg = llist_get(targets, i, 0);
             printf("\ntarget: " ANSI_YELLOW "%s\n" ANSI_RESET, trg->ident);
+            switch(trg->type)
+            {
+                case EXECUTABLE: printf(ANSI_BLUE "type: " ANSI_RESET "executable\n"); break;
+                case LIBSHARED:  printf(ANSI_BLUE "type: " ANSI_RESET "shared library\n"); break;
+                case LIBSTATIC:  printf(ANSI_BLUE "type: " ANSI_RESET "static library\n"); break;
+                case OBJECT:     printf(ANSI_BLUE "type: " ANSI_RESET "object code\n"); break;
+            }
+            if(trg->output) printf(ANSI_BLUE "output path: " ANSI_RESET "%s\n", trg->output);
             printf(ANSI_BLUE "files:" ANSI_RESET);
             for(int32 y = 0; y < llist_total(trg->files, 0); y++)
             {
@@ -979,6 +987,11 @@ void handleopts()
             for(int32 j = 0; j < llist_total(trg->depends, 0); j++)
             {
                 printf("%s,", (char*)llist_get(trg->depends, j, 0));
+            }
+            printf(ANSI_BLUE "\nlink:" ANSI_RESET);
+            for(int32 j = 0; j < llist_total(trg->link, 0); j++)
+            {
+                printf("%s,", (char*)llist_get(trg->link, j, 0));
             }
             printf("\n");
         }
