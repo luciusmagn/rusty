@@ -35,6 +35,25 @@ if(linux)
         file: "rusty.c";
 }
 
+target rusty_debug:
+    name: "rusty";
+    type: executable;
+    flags: { "-Wall", "-g" };
+    output: ".";
+    file: "mpc.c";
+    file: "rusty.c";
+    depends: "util.h";
+    depends: "dirent.h";
+    depends: "arg.h";
+    install:
+    {
+        "cp ./rusty /usr/bin/rusty",
+        "chmod 0777 /usr/bin/rusty"
+    };
+    uninstall:
+    {
+        "rm -rf /usr/bin/rusty"
+    }
 
 build rusty:
     depends: { "mpc.c", "rusty.c", "lib.c", "mpc.h", "arg.h", "util.h" }
