@@ -50,7 +50,16 @@ target mpc:
 
 target linktest:
     name: "linktest";
-    type: libsharedasd;
+    type: libshared;
     flags: { "-Wall" };
     file: "test/test.c";
     link: mpc;
+
+target objecttest:
+    name: "objtest";
+    type: object;
+    flags: { "-Wall" };
+    output: ".";
+    file: "test/test.c";
+    file: "mpc.c";
+    file: "rusty.c";
