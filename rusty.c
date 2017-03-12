@@ -1003,7 +1003,7 @@ void printhelp()
 
 void printabout()
 {
-    puts("Rusty build system, v0.7                                     \n");
+    puts("Rusty build system, v0.8                                     \n");
     puts("Rusty is a simple build system, which borrows its syntax       ");
     puts("from C2's (github.com/c2lang/c2compiler, c2lang.org) built-in  ");
     puts("build system. Rusty uses Daniel Holden's (orangeduck's) mpc    ");
