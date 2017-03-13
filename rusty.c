@@ -145,7 +145,7 @@ void printabout();
 
 //global vars
 options* opts;
-char* compiler;
+char* compiler = NULL;
 char* output_path;
 mpc_ast_t* tree;
 llist* targets = NULL;
@@ -524,7 +524,7 @@ void parse()
 
 void read_ast(mpc_ast_t* ast)
 {
-    compiler = get_string(ast->children[1]);
+    if(!compiler) compiler = get_string(ast->children[1]); //in case it's set by the -c/--compiler flag
     if(!compiler) error("couldn't read compiler name");
     for(int32 i = 0; i < ast->children_num; i++)
     {
@@ -996,7 +996,7 @@ void printhelp()
 
 void printabout()
 {
-    puts("Rusty build system, v0.8                                     \n");
+    puts("Rusty build system, v0.9                                     \n");
     puts("Rusty is a simple build system, which borrows its syntax       ");
     puts("from C2's (github.com/c2lang/c2compiler, c2lang.org) built-in  ");
     puts("build system. Rusty uses Daniel Holden's (orangeduck's) mpc    ");
