@@ -125,8 +125,7 @@ void parse();
 void read_ast(mpc_ast_t*);
 void read_trg(mpc_ast_t*);
 void read_if(mpc_ast_t*);
-void read_flags(mpc_ast_t*, target*);
-void read_install(mpc_ast_t*,target*);
+void read_list(mpc_ast_t*,llist*);
 void read_type(mpc_ast_t*, target*);
 void read_dir(target*,char*);
 
@@ -562,8 +561,9 @@ void read_trg(mpc_ast_t* ast)
             else trg->link = llist_new(ast->children[i]->children[2]->contents);
         }
         if(strcmp(ast->children[i]->tag, "dir|>") == 0) read_dir(trg, get_string(ast->children[i]));
-        if(strcmp(ast->children[i]->tag, "flags|>") == 0) read_flags(ast->children[i], trg);
-        if(strcmp(ast->children[i]->tag, "install|>") == 0) read_install(ast->children[i], trg);
+        if(strcmp(ast->children[i]->tag, "flags|>") == 0) read_list(ast->children[i], trg->flags);
+        if(strcmp(ast->children[i]->tag, "install|>") == 0) read_list(ast->children[i], trg->install);
+        if(strcmp(ast->children[i]->tag, "uninstall|>") == 0) read_list(ast->children[i], trg->uninstall);
         if(strcmp(ast->children[i]->tag, "type|>") == 0) read_type(ast->children[i], trg);
     }
 
@@ -578,27 +578,14 @@ void read_if(mpc_ast_t* ast)
         if(strcmp(ast->children[i]->tag, "target|>") == 0) read_trg(ast->children[i]);
 }
 
-void read_flags(mpc_ast_t* ast,target* trg)
-{
-    trg->flags = NULL;
-    for(int32 i = 0; i < ast->children_num; i++)
-    {
-        if(strcmp(ast->children[i]->tag, "string|>") == 0)
-        {
-            if(trg->flags) llist_put(trg->flags, ast->children[i]->children[1]->contents);
-            else trg->flags = llist_new(ast->children[i]->children[1]->contents);
-        }
-    }
-}
-
-void read_install(mpc_ast_t* ast,target* trg)
+void read_list(mpc_ast_t* ast,llist* list)
 {
     for(int32 i = 0; i < ast->children_num; i++)
     {
         if(strcmp(ast->children[i]->tag, "string|>") == 0)
         {
-            if(trg->install) llist_put(trg->flags, ast->children[i]->children[1]->contents);
-            else trg->install = llist_new(ast->children[i]->children[1]->contents);
+            if(list) llist_put(list, ast->children[i]->children[1]->contents);
+            else list = llist_new(ast->children[i]->children[1]->contents);
         }
     }
 }
