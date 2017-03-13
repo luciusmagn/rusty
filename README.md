@@ -5,7 +5,6 @@
 <meta name="generator" content="groff -Thtml, see www.gnu.org">
 <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
 <meta name="Content-Style" content="text/css">
-<title>RUSTY</title>
 
 </head>
 <body>
@@ -16,9 +15,6 @@
 <a href="#SYNOPSIS">SYNOPSIS</a><br>
 <a href="#DESCRIPTION">DESCRIPTION</a><br>
 <a href="#OPTIONS">OPTIONS</a><br>
-
-<hr>
-
 
 <h2>NAME
 <a name="NAME"></a>
@@ -115,6 +111,5 @@ targets</p>
 <p style="margin-left:22%;">Measure and print the CPU clock
 time rusty&rsquo;s execution took. Note that the CPU time is
 much shorter than the total time execution took.</p>
-<hr>
 </body>
 </html>
