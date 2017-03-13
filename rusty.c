@@ -86,6 +86,7 @@ typedef struct
     llist* depends;
     llist* flags;
     llist* install;
+    llist* uninstall;
     llist* link;
 } target;
 typedef struct
@@ -465,6 +466,7 @@ void parse()
     parser type = mpc_new("type");
     parser flags = mpc_new("flags");
     parser install = mpc_new("install");
+    parser uninstall = mpc_new("uninstall");
     parser file = mpc_new("file");
     parser depends = mpc_new("depends");
     parser link = mpc_new("link");
@@ -479,26 +481,28 @@ void parse()
     parser rusty = mpc_new("rusty");
 
     mpca_lang(MPCA_LANG_DEFAULT,
-              "ident   : /[a-zA-Z0-9_]+/ ;                                                          \n"
-              "string  : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                              \n"
-              "name    : \"name\" ':' <string> ';' ;                                                \n"
-              "type    : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
-              "flags   : \"flags\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                  \n"
-              "install : \"install\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                \n"
-              "file    : \"file\" ':' <string> ';' ;                                                \n"
-              "depends : \"depends\" ':' <string> ';' ;                                             \n"
-              "link    : \"link\" ':' <ident> ';' ;                                                 \n"
-              "buildtrg: \"build\" ':' <ident> ';' ;                                                \n"
-              "dir     : \"dir\" ':' <string> ';' ;                                                 \n"
-              "output  : \"output\" ':' <string> ';' ;                                              \n"
-              "target  : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
-              "        (<file>|<dir>|<depends>|<install>|<link>)+ ;                                 \n"
-              "build   : \"build\" <ident> ':' <name> <type>? ';' ;                                 \n"
-              "os      : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
-              "system  : \"if\" '(' <os> ')' '{' <target>+ '}' ;                                    \n"
-              "compiler: \"compiler\" ':' <string> ';' ;                                            \n"
-              "rusty   : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
-              , ident, string, name, type, flags, install, file, depends, link, buildtrg, dir, output, target, build, os, system, compiler, rusty, NULL);
+              "ident    : /[a-zA-Z0-9_]+/ ;                                                          \n"
+              "string   : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                              \n"
+              "name     : \"name\" ':' <string> ';' ;                                                \n"
+              "type     : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
+              "flags    : \"flags\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                  \n"
+              "install  : \"install\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                \n"
+              "uninstall: \"uninstall\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;              \n"
+              "file     : \"file\" ':' <string> ';' ;                                                \n"
+              "depends  : \"depends\" ':' <string> ';' ;                                             \n"
+              "link     : \"link\" ':' <ident> ';' ;                                                 \n"
+              "buildtrg : \"build\" ':' <ident> ';' ;                                                \n"
+              "dir      : \"dir\" ':' <string> ';' ;                                                 \n"
+              "output   : \"output\" ':' <string> ';' ;                                              \n"
+              "target   : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
+              "         (<file>|<dir>|<depends>|<install>|<link>)+ ;                                 \n"
+              "build    : \"build\" <ident> ':' <name> <type>? ';' ;                                 \n"
+              "os       : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
+              "system   : \"if\" '(' <os> ')' '{' <target>+ '}' ;                                    \n"
+              "compiler : \"compiler\" ':' <string> ';' ;                                            \n"
+              "rusty    : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
+              , ident, string, name, type, flags, install, uninstall, file, depends, link, buildtrg, dir, output,
+                target, build, os, system, compiler, rusty, NULL);
 
     if(mpc_parse_contents("rusty.txt", rusty, &r))
     {
@@ -511,7 +515,8 @@ void parse()
         mpc_err_delete(r.error);
         exit(-1);
     }
-    mpc_cleanup(18, ident, string, name, type, flags, install, file, depends, link, buildtrg, dir, output, target, build, os, system, compiler, rusty);
+    mpc_cleanup(19, ident, string, name, type, flags, install, uninstall, file, depends, link, buildtrg, dir, output,
+                    target, build, os, system, compiler, rusty);
 }
 
 void read_ast(mpc_ast_t* ast)
@@ -533,6 +538,7 @@ void read_trg(mpc_ast_t* ast)
     trg->output = NULL;
     trg->depends = NULL;
     trg->install = NULL;
+    trg->uninstall = NULL;
     trg->flags = NULL;
     trg->link = NULL;
     trg->ident = ast->children[1]->contents;
@@ -587,7 +593,6 @@ void read_flags(mpc_ast_t* ast,target* trg)
 
 void read_install(mpc_ast_t* ast,target* trg)
 {
-    trg->flags = NULL;
     for(int32 i = 0; i < ast->children_num; i++)
     {
         if(strcmp(ast->children[i]->tag, "string|>") == 0)
