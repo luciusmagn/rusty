@@ -1,23 +1,72 @@
 compiler: "gcc";
 
 target test:
-	name: "test";
-	type: executable;
-	flags: { "-Wall" };
-	file: "test.c";
-	dir: "dir";
+    name: "test";
+    type: executable;
+    flags: { "-Wall" };
+    file: "test.c";
+    dir: "dir";
 
 target test2:
-	name: "test2";
-	type: libshared;
-	flags: { "-Wall" };
-	file: "test.c";
-	dir: "dir";
+    name: "test2";
+    type: libshared;
+    flags: { "-Wall" };
+    file: "test.c";
+    dir: "dir";
 
 target test3:
-	name: "test3";
-	type: libstatic;
-	flags: { "-Wall" };
-	file: "test.c";
-	dir: "dir";
+    name: "test3";
+    type: libstatic;
+    flags: { "-Wall" };
+    file: "test.c";
+    dir: "dir";
 
+if(linux)
+{
+    target test:
+        name: "testc";
+        type: executable;
+        flags: { "-Wall" };
+        output: ".";
+        file: "test.c";
+}
+if(unix)
+{
+    target test:
+        name: "testc1";
+        type: executable;
+        flags: { "-Wall" };
+        output: ".";
+        file: "test.c";
+}
+if(osx)
+{
+    target test:
+        name: "testc2";
+        type: executable;
+        flags: { "-Wall" };
+        output: ".";
+        file: "test.c";
+}
+
+target mpc:
+    name: "mpc";
+    type: libstatic;
+    flags: { "-Wall" };
+    file: "../mpc.c";
+
+target linktest:
+    name: "linktest";
+    type: libshared;
+    flags: { "-Wall" };
+    file: "test.c";
+    link: mpc;
+
+target objecttest:
+    name: "objtest";
+    type: object;
+    flags: { "-Wall" };
+    output: ".";
+    file: "test.c";
+    file: "../mpc.c";
+    file: "../rusty.c";
