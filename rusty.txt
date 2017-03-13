@@ -18,7 +18,7 @@ target rusty:
 target rusty_debug:
     name: "rusty";
     type: executable;
-    flags: { "-Wall", "-g" };
+    flags: { "-Wall", "-g", "-flto" };
     output: ".";
     file: "mpc.c";
     file: "rusty.c";

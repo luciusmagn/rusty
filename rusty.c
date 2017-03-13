@@ -110,8 +110,6 @@ char* adler32(const char*, uint64);
 char* readfile(const char*);
 char* filename(char*);
 char** strsplit(char*, const char*);
-int8 startswith(const char*,const char*);
-int8 endswith(const char*,const char*);
 int8 modified(char*);
 int32 asprintf(char**,const char*,...);
 int32 vasprintf(char**,const char*,va_list);
@@ -276,19 +274,6 @@ char** strsplit(char* str, const char* delim)
         result[j] = llist_get(tokens, j, 0);
     }
     return result;
-}
-
-int8 endswith(const char *string, const char* suffix)
-{
-    char* loc = strstr(string, suffix);
-    if (loc != NULL)
-        return !strcmp(loc, suffix);
-    return(0);
-}
-
-int8 startswith(const char* str1, const char* str2)
-{
-    return !strncmp(str1, str2, strlen(str2));
 }
 
 int8 modified(char* name)
