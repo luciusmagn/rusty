@@ -96,6 +96,7 @@ typedef struct
     int8 printinfo;
     int8 verbose;
     int8 install;
+    int8 uninstall;
     int8 time;
 } options;
 
@@ -428,6 +429,9 @@ int32 main(int32 argc, char* argv[])
             break;
         case 'o':
             output_path = (++argv)[0];
+            break;
+        case 'c':
+            compiler = (++argv)[0];
             break;
         case 't':
             opts->time = 1;
@@ -898,6 +902,17 @@ void install(llist* installtargets)
             system((const char*)llist_get(current->install, j, 0));
         }
     }
+    if(opts->uninstall)
+    for(int32 i = 0; i < llist_total(targets, 0); i++)
+    {
+        target* current = llist_get(targets, i, 0);
+        if(!searchstr(installtargets, current->ident) && !searchstr(installtargets, "all")) continue;
+        for(int32 j = 0; j < llist_total(current->uninstall, 0); j++)
+        {
+            if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", (char*)llist_get(current->uninstall, j, 0));
+            system((const char*)llist_get(current->uninstall, j, 0));
+        }
+    }
 }
 
 void handleopts()
@@ -948,6 +963,7 @@ int8 option(char** argv, int* argc)
     if(argv[0][0] == '-' && strlen(argv[0]) > 1 && argv[0][1] != '-') return 1;
          if(strcmp(argv[0], "--ast") == 0) opts->printast = 1;
     else if(strcmp(argv[0], "--info") == 0) opts->printinfo = 1;
+    else if(strcmp(argv[0], "--time") == 0) opts->time = 1;
     else if(strcmp(argv[0], "--help") == 0) printhelp();
     else if(strcmp(argv[0], "--about") == 0) printabout();
     else if(strcmp(argv[0], "--fullrebuild") == 0) opts->fullrebuild = 1;
