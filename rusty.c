@@ -445,7 +445,7 @@ int32 main(int32 argc, char* argv[])
             opts->wanted_only = 1;
             break;
         case 'n':
-            opts->check_only = 1;
+            opts->only_check = 1;
             break;
         default:
             printf("unrecognized option: %c\n", ARGC());
@@ -494,7 +494,7 @@ void parse()
 
     mpca_lang(MPCA_LANG_DEFAULT,
               "ident    : /[a-zA-Z0-9_]+/ ;                                                          \n"
-              "string   : '\"' /([$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                              \n"
+              "string   : '\"' /([&=$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                            \n"
               "name     : \"name\" ':' <string> ';' ;                                                \n"
               "type     : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
               "flags    : \"flags\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                  \n"
@@ -906,6 +906,8 @@ void install(llist* installtargets)
     {
         target* current = llist_get(targets, i, 0);
         if(!searchstr(installtargets, current->ident) && !searchstr(installtargets, "all")) continue;
+        if(!current->install) continue;
+        printf(ANSI_MAGENTA "installing " ANSI_YELLOW "%s" ANSI_RESET "\n", current->ident);
         for(int32 j = 0; j < llist_total(current->install, 0); j++)
         {
             if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", (char*)llist_get(current->install, j, 0));
@@ -917,6 +919,7 @@ void install(llist* installtargets)
     {
         target* current = llist_get(targets, i, 0);
         if(!searchstr(installtargets, current->ident) && !searchstr(installtargets, "all")) continue;
+        printf(ANSI_MAGENTA "uninstalling " ANSI_YELLOW "%s" ANSI_RESET "\n", current->ident);
         for(int32 j = 0; j < llist_total(current->uninstall, 0); j++)
         {
             if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", (char*)llist_get(current->uninstall, j, 0));
