@@ -516,7 +516,7 @@ void parse()
               "os       : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
               "system   : \"if\" '(' <os> ')' '{' (<target>|<comment>)+ '}' ;                        \n"
               "compiler : \"compiler\" ':' <string> ';' ;                                            \n"
-              "rusty    : /^/ <compiler> (<target> | <system> | <comment>)+ /$/ ;                    \n"
+              "rusty    : /^/ <compiler> (<target> | <system> | <comment>+)+ /$/ ;                    \n"
               , comment, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir,
                 output, target, build, os, system, compiler, rusty, NULL);
 
