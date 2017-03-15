@@ -472,6 +472,7 @@ void parse()
 {
     mpc_result_t r;
 
+    parser comment = mpc_new("comment");
     parser ident = mpc_new("ident");
     parser string = mpc_new("string");
     parser name = mpc_new("name");
@@ -494,6 +495,7 @@ void parse()
     parser rusty = mpc_new("rusty");
 
     mpca_lang(MPCA_LANG_DEFAULT,
+              "comment  : '#' /[^\\n]*/ ;                                                            \n"
               "ident    : /[a-zA-Z0-9_]+/ ;                                                          \n"
               "string   : '\"' /([&=$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                            \n"
               "name     : \"name\" ':' <string> ';' ;                                                \n"
@@ -509,13 +511,13 @@ void parse()
               "dir      : \"dir\" ':' <string> ';' ;                                                 \n"
               "output   : \"output\" ':' <string> ';' ;                                              \n"
               "target   : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
-              "         (<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;                     \n"
+              "         (<file>|<dir>|<depends>|<install>|<uninstall>|<link>|<comment>)+ ;           \n"
               "build    : \"build\" <ident> ':' <name> <type>? ';' ;                                 \n"
               "os       : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
-              "system   : \"if\" '(' <os> ')' '{' <target>+ '}' ;                                    \n"
+              "system   : \"if\" '(' <os> ')' '{' (<target>|<comment>)+ '}' ;                        \n"
               "compiler : \"compiler\" ':' <string> ';' ;                                            \n"
-              "rusty    : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
-              , ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir,
+              "rusty    : /^/ <compiler> (<target> | <system> | <comment>)+ /$/ ;                    \n"
+              , comment, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir,
                 output, target, build, os, system, compiler, rusty, NULL);
 
     if(mpc_parse_contents("rusty.txt", rusty, &r))
@@ -529,7 +531,7 @@ void parse()
         mpc_err_delete(r.error);
         exit(-1);
     }
-    mpc_cleanup(19, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir, output,
+    mpc_cleanup(20, comment, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir, output,
                     target, build, os, system, compiler, rusty);
 }
 
@@ -1001,6 +1003,7 @@ int8 option(llist* wanted, char** argv, int* argc)
     else if(strcmp(argv[0], "--fullrebuild") == 0) opts->fullrebuild = 1;
     else if(strcmp(argv[0], "--wanted-only") == 0) opts->wanted_only = 1;
     else if(strcmp(argv[0], "--check") == 0) opts->only_check = 1;
+    else if(strcmp(argv[0], "--verbose") == 0) opts->verbose = 1;
     else if(strcmp(argv[0], "clean") == 0) cleanup();
     else if(strcmp(argv[0], "install") == 0) opts->install = 1;
     else if(strcmp(argv[0], "uninstall") == 0) opts->uninstall = 1;
@@ -1018,15 +1021,19 @@ int8 option(llist* wanted, char** argv, int* argc)
 
 void printhelp()
 {
-     puts("--ast             print the AST of rusty file");
-     puts("--info  -i        print basic information about each target");
-     puts("--compiler name   change the compiler used");
-     puts("--help  -h        print this help text");
-     puts("--about           print the about text");
-     puts("--dir   -d        change CWD before looking for rusty file");
-     puts("--fullrebuild -r  ignore whether files have been changed or not");
-     puts("--output -o       change output path");
-     exit(0);
+    puts("--ast   -a         print the AST of rusty file");
+    puts("--info  -i         print basic information about each target");
+    puts("--time  -t         measure CPU time");
+    puts("--compiler -c name change the compiler used");
+    puts("--help  -h         print this help text");
+    puts("--about            print the about text");
+    puts("--dir   -d         change CWD before looking for rusty file");
+    puts("--fullrebuild -r   ignore whether files have been changed or not");
+    puts("--wanted-only -w   only print information about wanted targets");
+    puts("--check -n         don't compile, just check");
+    puts("--verbose -v       print more stuff");
+    puts("--output -o        change output path");
+    exit(0);
 }
 
 void printabout()
