@@ -138,8 +138,8 @@ void linker(llist*);
 void install(llist*);
 
 void cleanup();
-void handleopts();
-int8 option(char**, int*);
+void handleopts(llist*);
+int8 option(llist*, char**, int*);
 void printhelp();
 void printabout();
 
@@ -403,11 +403,12 @@ void deletedir(char* name)
 }
 
 
-//TODO refactor to not be retarded
-llist* wanted = NULL;
-
+//main and the wonderful argument functions down here
+// | | | | | | | | | | | | | | | | | | | | | | | |
+// v v v v v v v v v v v v v v v v v v v v v v v v
 int32 main(int32 argc, char* argv[])
 {
+    llist* wanted = NULL;
     clock_t begin = clock();
     opts = calloc(1, sizeof(options));
     if(argc == 1) wanted = llist_new("all");
@@ -545,15 +546,7 @@ void read_ast(mpc_ast_t* ast)
 
 void read_trg(mpc_ast_t* ast)
 {
-    target* trg = malloc(sizeof(target));
-    trg->built = 0;
-    trg->files = NULL;
-    trg->output = NULL;
-    trg->depends = NULL;
-    trg->install = NULL;
-    trg->uninstall = NULL;
-    trg->flags = NULL;
-    trg->link = NULL;
+    target* trg = calloc(sizeof(target), 1);
     trg->ident = ast->children[1]->contents;
     for (int32 i = 0; i < ast->children_num; i++)
     {
@@ -655,12 +648,15 @@ void read_dir(target* trg, char* name)
 
 void process(llist* wanted)
 {
-    handleopts();
+    handleopts(wanted);
     if(!opts->uninstall && !opts->only_check)
     {
         builder(wanted);
         linker(wanted);
     }
+    if(opts->install && opts->uninstall)
+        puts(ANSI_BLUE "I don't know about you, but I think that uninstalling and installing at once is a bad idea. "
+                       "But well, who am I to judge." ANSI_RESET);
     install(wanted);
     return;
 }
@@ -931,9 +927,8 @@ void install(llist* installtargets)
     }
 }
 
-void handleopts()
+void handleopts(llist* wanted)
 {
-    printf("test:%d\n", opts->printast | (opts->wanted_only << 1));
     //to the person who looks at the next few lines:
     //here be dragons
     //I am really sorry... don't even try, I am not sure if I can read it myself
@@ -994,7 +989,7 @@ void handleopts()
     }
 }
 
-int8 option(char** argv, int* argc)
+int8 option(llist* wanted, char** argv, int* argc)
 {
     if(!argv[0]) return 1;
     if(argv[0][0] == '-' && strlen(argv[0]) > 1 && argv[0][1] != '-') return 1;
