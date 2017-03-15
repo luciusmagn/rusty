@@ -3,7 +3,7 @@ compiler: "gcc";
 target rusty:
     name: "rusty";
     type: executable;
-    flags: { "-Wall" };
+    flags: { "-Wall", "-std=gnu99" };
     output: ".";
     file: "mpc.c";
     file: "rusty.c";
@@ -13,19 +13,19 @@ target rusty:
     install: {
      "cp ./rusty /usr/bin/rusty",
      "chmod 0777 /usr/bin/rusty",
-     "cp ./rusty.1 /usr/local/share/man/man1/",
-     "mandb"
+     "cp ./rusty.1 /usr/man/man1/",
+     "echo updating mandb && mandb -q"
     };
     uninstall: {
      "rm -f /usr/bin/rusty",
-     "rm -f /usr/local/share/man/man1/rusty.1",
-     "mandb"
+     "rm -f /usr/man/man1/rusty.1",
+     "echo updating mandb && mandb -q"
     };
 
 target rusty_debug:
     name: "rusty";
     type: executable;
-    flags: { "-Wall", "-g", "-flto" };
+    flags: { "-Wall", "-g", "-flto", "-std=gnu99" };
     output: ".";
     file: "mpc.c";
     file: "rusty.c";
