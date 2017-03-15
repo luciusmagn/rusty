@@ -1,5 +1,15 @@
 compiler: "gcc";
 
+#Lukáš Hozda(c), 2015-2017
+#
+#Usage of the works is permitted provided that this
+#instrument is retained with the works, so that any
+#entity that uses the works is notified of this instrument.
+#
+#DISCLAIMER: THE WORKS ARE WITHOUT WARRANTY.
+#also disclaimer: this license text is here mainly to test comments
+
+
 target rusty:
     name: "rusty";
     type: executable;
