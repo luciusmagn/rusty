@@ -656,8 +656,11 @@ void read_dir(target* trg, char* name)
 void process(llist* wanted)
 {
     handleopts();
-    builder(wanted);
-    linker(wanted);
+    if(!opts->uninstall)
+    {
+        builder(wanted);
+        linker(wanted);
+    }
     install(wanted);
     return;
 }
