@@ -32,7 +32,7 @@ if(linux)
             "export POTATO=tato"
         };
         file: "mpc.c";
-        file: "rusty.c";
+        file: "rusty.c @depends("arg.h")";
 }
 
 target rusty_debug:
