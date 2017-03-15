@@ -12,7 +12,14 @@ target rusty:
     depends: "arg.h";
     install: {
      "cp ./rusty /usr/bin/rusty",
-     "chmod 0777 /usr/bin/rusty"
+     "chmod 0777 /usr/bin/rusty",
+     "cp ./rusty.1 /usr/local/share/man/man1/",
+     "mandb"
+    };
+    uninstall: {
+     "rm -f /usr/bin/rusty",
+     "rm -f /usr/local/share/man/man1/rusty.1",
+     "mandb"
     };
 
 target rusty_debug:
