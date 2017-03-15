@@ -1021,6 +1021,9 @@ int8 option(llist* wanted, char** argv, int* argc)
 
 void printhelp()
 {
+    puts("usage: rusty  [-h]  [--help]  [--ast]  [--info]  [--about] [-viratwn] [-o DIR] "
+       "[--output DIR] [-d DIR] [--dir DIR] [-c COMPILER] [--compiler COMPILER] "
+       "[-o DIR] [TARGETS] [clean] [install] [uninstall]\n");
     puts("--ast   -a         print the AST of rusty file");
     puts("--info  -i         print basic information about each target");
     puts("--time  -t         measure CPU time");
