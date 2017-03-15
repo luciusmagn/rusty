@@ -98,6 +98,8 @@ typedef struct
     int8 install;
     int8 uninstall;
     int8 time;
+    int8 wanted_only; //print and show info only about wanted targets
+    int8 only_check; //don't build the targets, just check the ast, process arguments and exit
 } options;
 
 //functions
@@ -439,6 +441,12 @@ int32 main(int32 argc, char* argv[])
         case 'v':
             opts->verbose = 1;
             break;
+        case 'w':
+            opts->wanted_only = 1;
+            break;
+        case 'n':
+            opts->check_only = 1;
+            break;
         default:
             printf("unrecognized option: %c\n", ARGC());
             break;
@@ -470,6 +478,7 @@ void parse()
     parser flags = mpc_new("flags");
     parser install = mpc_new("install");
     parser uninstall = mpc_new("uninstall");
+    parser attribute = mpc_new("attribute");
     parser file = mpc_new("file");
     parser depends = mpc_new("depends");
     parser link = mpc_new("link");
@@ -491,21 +500,22 @@ void parse()
               "flags    : \"flags\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                  \n"
               "install  : \"install\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                \n"
               "uninstall: \"uninstall\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;              \n"
-              "file     : \"file\" ':' <string> ';' ;                                                \n"
+              "attribute: '@' <ident> '(' <string> (',' <string>)* ')' ;                             \n"
+              "file     : \"file\" ':' <string> <attribute>? ';' ;                                   \n"
               "depends  : \"depends\" ':' <string> ';' ;                                             \n"
               "link     : \"link\" ':' <ident> ';' ;                                                 \n"
               "buildtrg : \"build\" ':' <ident> ';' ;                                                \n"
               "dir      : \"dir\" ':' <string> ';' ;                                                 \n"
               "output   : \"output\" ':' <string> ';' ;                                              \n"
               "target   : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
-              "         (<file>|<dir>|<depends>|<install>|<link>)+ ;                                 \n"
+              "         (<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;                     \n"
               "build    : \"build\" <ident> ':' <name> <type>? ';' ;                                 \n"
               "os       : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
               "system   : \"if\" '(' <os> ')' '{' <target>+ '}' ;                                    \n"
               "compiler : \"compiler\" ':' <string> ';' ;                                            \n"
               "rusty    : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
-              , ident, string, name, type, flags, install, uninstall, file, depends, link, buildtrg, dir, output,
-                target, build, os, system, compiler, rusty, NULL);
+              , ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir,
+                output, target, build, os, system, compiler, rusty, NULL);
 
     if(mpc_parse_contents("rusty.txt", rusty, &r))
     {
@@ -518,7 +528,7 @@ void parse()
         mpc_err_delete(r.error);
         exit(-1);
     }
-    mpc_cleanup(19, ident, string, name, type, flags, install, uninstall, file, depends, link, buildtrg, dir, output,
+    mpc_cleanup(19, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir, output,
                     target, build, os, system, compiler, rusty);
 }
 
@@ -723,7 +733,6 @@ void builder(llist* buildtargets)
             printf(ANSI_GREEN "\tbuilding file" ANSI_YELLOW " %s" ANSI_RESET "\n" , (char*)llist_get(current->files, j, 0));
             char* cmd;
             char* flags = " ";
-            printf("flag count: %d\n", llist_total(current->flags,0));
             for(int32 j = 0; j < llist_total(current->flags, 0); j++)
             {
                 asprintf(&flags, "%s %s", flags, llist_get(current->flags, j, 0));
@@ -918,7 +927,28 @@ void install(llist* installtargets)
 
 void handleopts()
 {
-    if(opts->printast) mpc_ast_print(tree);
+    printf("test:%d\n", opts->printast | (opts->wanted_only << 1));
+    //to the person who looks at the next few lines:
+    //here be dragons
+    //I am really sorry... don't even try, I am not sure if I can read it myself
+    if(opts->printast)
+    {
+        if(opts->wanted_only)
+        {
+            for(int32 i = 0; i < tree->children_num; i++)
+            {
+                if(strcmp(tree->children[i]->tag, "target|>") == 0
+                   && (searchstr(wanted, "all") || searchstr(wanted, tree->children[i]->children[1]->contents)))
+                    mpc_ast_print(tree->children[i]);
+                if(strcmp(tree->children[i]->tag, "system|>") == 0)
+                    for(int32 j = 0; j < tree->children_num; j++)
+                        if(strcmp(tree->children[i]->children[j]->tag, "target|>") == 0
+                           && (searchstr(wanted, "all") || searchstr(wanted, tree->children[i]->children[j]->children[1]->contents)))
+                            mpc_ast_print(tree->children[i]->children[j]);
+            }
+        }
+        else mpc_ast_print(tree);
+    }
     if(opts->printinfo)
     {
         for(int32 i = 0; i < llist_total(targets, 0); i++)
@@ -968,8 +998,11 @@ int8 option(char** argv, int* argc)
     else if(strcmp(argv[0], "--help") == 0) printhelp();
     else if(strcmp(argv[0], "--about") == 0) printabout();
     else if(strcmp(argv[0], "--fullrebuild") == 0) opts->fullrebuild = 1;
+    else if(strcmp(argv[0], "--wanted-only") == 0) opts->wanted_only = 1;
+    else if(strcmp(argv[0], "--check") == 0) opts->only_check = 1;
     else if(strcmp(argv[0], "clean") == 0) cleanup();
     else if(strcmp(argv[0], "install") == 0) opts->install = 1;
+    else if(strcmp(argv[0], "uninstall") == 0) opts->uninstall = 1;
     else if(strcmp(argv[0], "--compiler") == 0 && argv[1]) { compiler = (++argv)[0]; (*argc)++; }
     else if(strcmp(argv[0], "--output") == 0 && argv[1]) { output_path = (++argv)[0]; (*argc)++; }
     else if(strcmp(argv[0], "--dir") == 0 && argv[1]) { chdir((++argv)[0]); (*argc)++; }
