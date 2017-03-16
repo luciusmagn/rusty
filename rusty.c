@@ -472,7 +472,6 @@ void parse()
 {
     mpc_result_t r;
 
-    parser comment = mpc_new("comment");
     parser ident = mpc_new("ident");
     parser string = mpc_new("string");
     parser name = mpc_new("name");
@@ -495,7 +494,6 @@ void parse()
     parser rusty = mpc_new("rusty");
 
     mpca_lang(MPCA_LANG_DEFAULT,
-              "comment  : '#' /[^\\n]*/ ;                                                            \n"
               "ident    : /[a-zA-Z0-9_]+/ ;                                                          \n"
               "string   : '\"' /([&=$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                            \n"
               "name     : \"name\" ':' <string> ';' ;                                                \n"
@@ -511,16 +509,23 @@ void parse()
               "dir      : \"dir\" ':' <string> ';' ;                                                 \n"
               "output   : \"output\" ':' <string> ';' ;                                              \n"
               "target   : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
-              "         (<file>|<dir>|<depends>|<install>|<uninstall>|<link>|<comment>)+ ;           \n"
+              "         (<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;                     \n"
               "build    : \"build\" <ident> ':' <name> <type>? ';' ;                                 \n"
               "os       : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
-              "system   : \"if\" '(' <os> ')' '{' (<target>|<comment>)+ '}' ;                        \n"
+              "system   : \"if\" '(' <os> ')' '{' (<target>)+ '}' ;                                  \n"
               "compiler : \"compiler\" ':' <string> ';' ;                                            \n"
-              "rusty    : /^/ <compiler> (<target> | <system> | <comment>+)+ /$/ ;                    \n"
-              , comment, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir,
+              "rusty    : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
+              , ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir,
                 output, target, build, os, system, compiler, rusty, NULL);
 
-    if(mpc_parse_contents("rusty.txt", rusty, &r))
+    char* raw = readfile("rusty.txt");
+    char* commentless = calloc(sizeof(char) * strlen(raw), 1);
+    for (int32 i = 0, k = 0; i < strlen(raw); i++, k++)
+    {
+        if(raw[i] == '#') { while(raw[i] != '\n') i++; }
+        commentless[k] = raw[i];
+    }
+    if(mpc_parse("rusty.txt", commentless, rusty, &r))
     {
         tree = r.output;
         read_ast(r.output);
@@ -531,7 +536,7 @@ void parse()
         mpc_err_delete(r.error);
         exit(-1);
     }
-    mpc_cleanup(20, comment, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir, output,
+    mpc_cleanup(19, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir, output,
                     target, build, os, system, compiler, rusty);
 }
 
