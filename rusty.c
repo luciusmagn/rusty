@@ -77,6 +77,11 @@ typedef struct _llist
 } llist;
 typedef struct
 {
+    char* name;
+    llist* depends;
+} file;
+typedef struct
+{
     int8 built;
     char* ident;
     char* name;
@@ -501,7 +506,7 @@ void parse()
               "flags    : \"flags\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                  \n"
               "install  : \"install\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                \n"
               "uninstall: \"uninstall\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;              \n"
-              "attribute: '@' <ident> '(' <string> (',' <string>)* ')' ;                             \n"
+              "attribute: '@' \"depends\" '(' <string> (',' <string>)* ')' ;                         \n"
               "file     : \"file\" ':' <string> <attribute>? ';' ;                                   \n"
               "depends  : \"depends\" ':' <string> ';' ;                                             \n"
               "link     : \"link\" ':' <ident> ';' ;                                                 \n"
@@ -510,7 +515,7 @@ void parse()
               "output   : \"output\" ':' <string> ';' ;                                              \n"
               "target   : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
               "         (<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;                     \n"
-              "build    : \"build\" <ident> ':' <name> <type>? ';' ;                                 \n"
+              "build    : \"build\" <ident> ':' <name> <type>? (<buildtrg> |)+ ';' ;                                 \n"
               "os       : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
               "system   : \"if\" '(' <os> ')' '{' (<target>)+ '}' ;                                  \n"
               "compiler : \"compiler\" ':' <string> ';' ;                                            \n"
@@ -561,8 +566,23 @@ void read_trg(mpc_ast_t* ast)
         if(strcmp(ast->children[i]->tag, "output|>") == 0) trg->output = get_string(ast->children[i]);
         if(strcmp(ast->children[i]->tag, "file|>") == 0)
         {
-            if(trg->files) llist_put(trg->files, get_string(ast->children[i]));
-            else trg->files = llist_new(get_string(ast->children[i]));
+            file* f = calloc(sizeof(file), 1);
+            f->name = get_string(ast->children[i]);
+
+            if(ast->children[i]->children[3])
+            for(int j = 3; j < ast->children[i]->children[3]->children_num; j++)
+            {
+                if(strcmp(ast->children[i]->children[3]->children[j]->tag, "string|>") == 0)
+                {
+                    if(f->depends)
+                        llist_put(f->depends, ast->children[i]->children[3]->children[j]->children[1]->contents);
+                    else
+                        f->depends = llist_new(ast->children[i]->children[3]->children[j]->children[1]->contents);
+                }
+            }
+
+            if(trg->files) llist_put(trg->files, f);
+            else trg->files = llist_new(f);
         }
         if(strcmp(ast->children[i]->tag, "depends|>") == 0)
         {
@@ -647,7 +667,9 @@ void read_dir(target* trg, char* name)
                    )
           )
         {
-            llist_put(trg->files, path);
+            file* f = calloc(sizeof(file), 1);
+            f->name = path;
+            llist_put(trg->files, f);
         }
     }
     return;
@@ -695,10 +717,10 @@ void builder(llist* buildtargets)
         if(!searchstr(buildtargets, current->ident) && !searchstr(buildtargets, "all")) continue;
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
-            if(access(llist_get(current->files, j, 0), R_OK) == 0) continue;
+            if(access( ((file*)llist_get(current->files, j, 0))->name, R_OK) == 0) continue;
             errors++;
             char* msg;
-            asprintf(&msg, "file %s does not exist or cannot be read", llist_get(current->files, j, 0));
+            asprintf(&msg, "file %s does not exist or cannot be read", ((file*)llist_get(current->files, j, 0))->name);
             builderror(msg);
         }
         for(int32 j = 0; j < llist_total(current->depends, 0); j++)
@@ -732,11 +754,11 @@ void builder(llist* buildtargets)
             char* path;
             asprintf(&path, "object/%s/%s.o",
                      current->ident,
-                     filename(llist_get(current->files, j, 0)));
-            if(!access(path, R_OK) && !modified(llist_get(current->files, j, 0)) && depends_okay) continue;
+                     filename( ((file*)llist_get(current->files, j, 0))->name) );
+            if(!access(path, R_OK) && !modified( ((file*)llist_get(current->files, j, 0))->name ) && depends_okay) continue;
             if(opts->verbose && depends_okay)
-                printf((searchstr(buildtargets, "all") ? ANSI_BLUE "recompiling file %s...\n" : ANSI_BLUE "source file %s modified, recompiling...\n"), (char*)llist_get(current->files, j, 0));
-            printf(ANSI_GREEN "\tbuilding file" ANSI_YELLOW " %s" ANSI_RESET "\n" , (char*)llist_get(current->files, j, 0));
+                printf((searchstr(buildtargets, "all") ? ANSI_BLUE "recompiling file %s...\n" : ANSI_BLUE "source file %s modified, recompiling...\n"), ((file*)llist_get(current->files, j, 0))->name);
+            printf(ANSI_GREEN "\tbuilding file" ANSI_YELLOW " %s" ANSI_RESET "\n" , ((file*)llist_get(current->files, j, 0))->name );
             char* cmd;
             char* flags = " ";
             for(int32 j = 0; j < llist_total(current->flags, 0); j++)
@@ -745,15 +767,15 @@ void builder(llist* buildtargets)
             }
             asprintf(&cmd, "%s %s %s -c -o object/%s/%s.o",
                      compiler,
-                     llist_get(current->files, j, 0),
+                     ((file*)llist_get(current->files, j, 0))->name,
                      flags,
                      current->ident,
-                     filename(llist_get(current->files, j, 0)));
+                     filename( ((file*)llist_get(current->files, j, 0))->name ));
             if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", cmd);
             if(system(cmd))
             {
                 errors++;
-                printf(ANSI_RED "\tfailed to build file " ANSI_YELLOW "%s" ANSI_RESET "\n", (char*)llist_get(current->files, j, 0));
+                printf(ANSI_RED "\tfailed to build file " ANSI_YELLOW "%s" ANSI_RESET "\n", ((file*)llist_get(current->files, j, 0))->name);
             }
         }
         if(errors)
@@ -780,7 +802,7 @@ void linker(llist* linktargets)
         char* list = " ";
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
-            asprintf(&list, "%s object/%s/%s.o ", list, current->ident, filename(llist_get(current->files, j, 0)));
+            asprintf(&list, "%s object/%s/%s.o ", list, current->ident, filename( ((file*)llist_get(current->files, j, 0))->name ));
         }
         for(int32 j = 0; j < llist_total(current->link, 0); j++)
         {
@@ -806,7 +828,7 @@ void linker(llist* linktargets)
             }
             for(int32 k = 0; k < llist_total(trg->files, 0); k++)
             {
-                asprintf(&list, "%s object/%s/%s.o ", list, trg->ident, filename(llist_get(trg->files, k, 0)));
+                asprintf(&list, "%s object/%s/%s.o ", list, trg->ident, filename( ((file*)llist_get(trg->files, k, 0))->name ));
             }
             printf(ANSI_GREEN "\tlinked with: " ANSI_YELLOW "%s" ANSI_RESET "\n", name);
         }
@@ -835,7 +857,7 @@ void linker(llist* linktargets)
             for(int32 j = 0; j < llist_total(current->files, 0); j++)
             {
                 asprintf(&list2, "%s %s/object/%s/%s.o ",
-                         list2, cwd, current->ident, filename(llist_get(current->files, j, 0)));
+                         list2, cwd, current->ident, filename( ((file*)llist_get(current->files, j, 0))->name ));
             }
             if (current->output)
             {
@@ -974,7 +996,7 @@ void handleopts(llist* wanted)
             printf(ANSI_BLUE "files:" ANSI_RESET);
             for(int32 y = 0; y < llist_total(trg->files, 0); y++)
             {
-                printf("%s,", (char*)llist_get(trg->files, y, 0));
+                printf("%s,", ((file*)llist_get(trg->files, y, 0))->name);
             }
             printf(ANSI_BLUE "\nflags:" ANSI_RESET);
             for(int32 j = 0; j < llist_total(trg->flags, 0); j++)
