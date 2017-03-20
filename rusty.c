@@ -409,9 +409,9 @@ void deletedir(char* name)
 }
 
 
-//main and the wonderful argument functions down here
-// | | | | | | | | | | | | | | | | | | | | | | | |
-// v v v v v v v v v v v v v v v v v v v v v v v v
+/*****************************
+ *           MAIN            *
+ *****************************/
 int32 main(int32 argc, char* argv[])
 {
     llist* wanted = NULL;
@@ -1090,7 +1090,7 @@ void printhelp()
 
 void printabout()
 {
-    puts("Rusty build system, v0.9                                     \n");
+    puts("Rusty build system, v0.10                                    \n");
     puts("Rusty is a simple build system, which borrows its syntax       ");
     puts("from C2's (github.com/c2lang/c2compiler, c2lang.org) built-in  ");
     puts("build system. Rusty uses Daniel Holden's (orangeduck's) mpc    ");
