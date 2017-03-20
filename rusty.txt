@@ -16,10 +16,8 @@ target rusty:
     flags: { "-Wall", "-std=gnu99" };
     output: ".";
     file: "mpc.c";
-    file: "rusty.c";
-    depends: "util.h";
-    depends: "dirent.h";
-    depends: "arg.h";
+    file: "rusty.c" @depends("util.h", "dirent.h", "arg.h");
+    depends: "mpc.h";
     install: {
      "cp ./rusty /usr/bin/rusty",
      "chmod 0777 /usr/bin/rusty",
@@ -38,7 +36,5 @@ target rusty_debug:
     flags: { "-Wall", "-g", "-flto", "-std=gnu99" };
     output: ".";
     file: "mpc.c";
-    file: "rusty.c";
-    depends: "util.h";
-    depends: "dirent.h";
-    depends: "arg.h";
+    file: "rusty.c" @depends("util.h", "dirent.h", "arg.h");
+    depends: "mpc.h";

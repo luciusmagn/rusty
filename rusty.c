@@ -144,7 +144,8 @@ void install(llist*);
 
 void cleanup();
 void handleopts(llist*);
-int8 option(llist*, char**, int*);
+int8 option(llist**, char**, int*);
+int8 checkdepends(llist*);
 void printhelp();
 void printabout();
 
@@ -568,7 +569,7 @@ void read_trg(mpc_ast_t* ast)
         {
             file* f = calloc(sizeof(file), 1);
             f->name = get_string(ast->children[i]);
-
+            puts("file");
             if(ast->children[i]->children[3])
             for(int j = 3; j < ast->children[i]->children[3]->children_num; j++)
             {
@@ -755,7 +756,9 @@ void builder(llist* buildtargets)
             asprintf(&path, "object/%s/%s.o",
                      current->ident,
                      filename( ((file*)llist_get(current->files, j, 0))->name) );
-            if(!access(path, R_OK) && !modified( ((file*)llist_get(current->files, j, 0))->name ) && depends_okay) continue;
+            if(!access(path, R_OK) && !modified( ((file*)llist_get(current->files, j, 0))->name )
+            && !checkdepends( ((file*)llist_get(current->files, j, 0))->depends) && depends_okay)
+                continue;
             if(opts->verbose && depends_okay)
                 printf((searchstr(buildtargets, "all") ? ANSI_BLUE "recompiling file %s...\n" : ANSI_BLUE "source file %s modified, recompiling...\n"), ((file*)llist_get(current->files, j, 0))->name);
             printf(ANSI_GREEN "\tbuilding file" ANSI_YELLOW " %s" ANSI_RESET "\n" , ((file*)llist_get(current->files, j, 0))->name );
@@ -967,6 +970,7 @@ void handleopts(llist* wanted)
         {
             for(int32 i = 0; i < tree->children_num; i++)
             {
+                printf("wanted only: %d\n", (searchstr(wanted, "all")));
                 if(strcmp(tree->children[i]->tag, "target|>") == 0
                    && (searchstr(wanted, "all") || searchstr(wanted, tree->children[i]->children[1]->contents)))
                     mpc_ast_print(tree->children[i]);
@@ -996,7 +1000,18 @@ void handleopts(llist* wanted)
             printf(ANSI_BLUE "files:" ANSI_RESET);
             for(int32 y = 0; y < llist_total(trg->files, 0); y++)
             {
-                printf("%s,", ((file*)llist_get(trg->files, y, 0))->name);
+                file* current = (file*)llist_get(trg->files, y, 0);
+                if(current->depends)
+                {
+                    printf("%s (%s", current->name, (char*)llist_get(current->depends, 0, 0));
+                    for(int x = 1; x < llist_total(current->depends, 0); x++)
+                    {
+                        printf(", %s", (char*)llist_get(current->depends, x, 0));
+                    }
+                    printf("), ");
+                }
+                else
+                    printf("%s, ", current->name);
             }
             printf(ANSI_BLUE "\nflags:" ANSI_RESET);
             for(int32 j = 0; j < llist_total(trg->flags, 0); j++)
@@ -1018,10 +1033,10 @@ void handleopts(llist* wanted)
     }
 }
 
-int8 option(llist* wanted, char** argv, int* argc)
+int8 option(llist** wanted, char** argv, int* argc)
 {
     if(!argv[0]) return 1;
-    if(argv[0][0] == '-' && strlen(argv[0]) > 1 && argv[0][1] != '-') return 1;
+    if(argv[0][0] == '-' && strlen(argv[0]) > 1 && argv[0][1] != '-') return 1; //TODO8
          if(strcmp(argv[0], "--ast") == 0) opts->printast = 1;
     else if(strcmp(argv[0], "--info") == 0) opts->printinfo = 1;
     else if(strcmp(argv[0], "--time") == 0) opts->time = 1;
@@ -1040,10 +1055,18 @@ int8 option(llist* wanted, char** argv, int* argc)
     else if(strncmp(argv[0], "--", 2) == 0) printf("unrecognized option: %s\n", argv[0]);
     else
     {
-        if(!wanted) wanted = llist_new(argv[0]);
-        else llist_put(wanted, argv[0]);
+        if(!*wanted) *wanted = llist_new(argv[0]);
+        else llist_put(*wanted, argv[0]);
     }
     return 1;
+}
+
+int8 checkdepends(llist* files)
+{
+    int8 flag = 0;
+    if(files == NULL) return 0;
+    for(int i = 0; i < llist_total(files, 0); i++) if(modified((char*)llist_get(files, i, 0))) flag++;
+    return flag;
 }
 
 void printhelp()
