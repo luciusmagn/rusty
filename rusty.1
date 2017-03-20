@@ -15,19 +15,19 @@ Print a basic help text.
 .BR \-\-about\fR
 Print a basic about text with even more basic usage example.
 .TP
-.BR \-c ", " \-\-compiler \I" "\fR
-Print the rustyfile's Abstract Syntax Tree.
+.BR \-c ", " \-\-compiler " " \fIname\fR
+Change the compiler used to process files.
 .TP
 .BR \-i ", " \-\-info\fR
 Print info about each target found in the rustyfile.
 .TP
-.BR \-d ", " \-\-dir\fR
+.BR \-d ", " \-\-dir " " \fIpath\fR
 Change directory before looking for rustyfile.
 .TP
 .BR \-r ", " \-\-fullrebuild\fR
 Recompile all files regardless of whether or not has it been modified. Useful if compilation fails, because atm, Rusty can't detect if the compilation has failed or not.
 .TP
-.BR \-o ", " \-\-output\fR
+.BR \-o ", " \-\-output " " \fIpath\fR
 Change the output directory for targets
 .TP
 .BR \-t ", " \-\-time\fR
@@ -37,4 +37,4 @@ Measure and print the CPU clock time rusty's execution took. Note that the CPU t
 Just check the rustyfile and don't compile or build anything. Other command\-line arguments still processed.
 .TP
 .BR \-w ", " \-\-wanted\-only\fR
-Show info & only for desired targets, not the whole rustyfile.
+Show info & ast only for desired targets, not the whole rustyfile. usage of \-i and \-a is still required for the information to show.

@@ -66,10 +66,10 @@ subdirectories.</p>
 even more basic usage example.</p>
 
 <p style="margin-left:11%;"><b>&minus;c</b>,
-<b>&minus;&minus;compiler</b>I&quot;</p>
+<b>&minus;&minus;compiler</b> <i>name</i></p>
 
-<p style="margin-left:22%;">Print the rustyfile&rsquo;s
-Abstract Syntax Tree.</p>
+<p style="margin-left:22%;">Change the compiler used to
+process files.</p>
 
 <p style="margin-left:11%;"><b>&minus;i</b>,
 <b>&minus;&minus;info</b></p>
@@ -78,7 +78,7 @@ Abstract Syntax Tree.</p>
 found in the rustyfile.</p>
 
 <p style="margin-left:11%;"><b>&minus;d</b>,
-<b>&minus;&minus;dir</b></p>
+<b>&minus;&minus;dir</b> <i>path</i></p>
 
 <p style="margin-left:22%;">Change directory before looking
 for rustyfile.</p>
@@ -92,7 +92,7 @@ compilation fails, because atm, Rusty can&rsquo;t detect if
 the compilation has failed or not.</p>
 
 <p style="margin-left:11%;"><b>&minus;o</b>,
-<b>&minus;&minus;output</b></p>
+<b>&minus;&minus;output</b> <i>path</i></p>
 
 <p style="margin-left:22%;">Change the output directory for
 targets</p>
@@ -114,6 +114,8 @@ command&minus;line arguments still processed.</p>
 <p style="margin-left:11%;"><b>&minus;w</b>,
 <b>&minus;&minus;wanted&minus;only</b></p>
 
-<p style="margin-left:22%;">Show info &amp; only for
-desired targets, not the whole rustyfile.</p>
+<p style="margin-left:22%;">Show info &amp; ast only for
+desired targets, not the whole rustyfile. usage of &minus;i
+and &minus;a is still required for the information to
+show.</p>
 <hr>
