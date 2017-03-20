@@ -569,7 +569,6 @@ void read_trg(mpc_ast_t* ast)
         {
             file* f = calloc(sizeof(file), 1);
             f->name = get_string(ast->children[i]);
-            puts("file");
             if(ast->children[i]->children[3])
             for(int j = 3; j < ast->children[i]->children[3]->children_num; j++)
             {
