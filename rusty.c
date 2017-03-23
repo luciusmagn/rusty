@@ -336,14 +336,10 @@ int32 vasprintf(char **str, const char *fmt, va_list args)
     size = vsnprintf(NULL, size, fmt, tmpa);
     va_end(tmpa);
     if (size < 0)
-    {
         return -1;
-    }
     *str = (char *)malloc(size + 1);
     if (NULL == *str)
-    {
         return -1;
-    }
     size = vsprintf(*str, fmt, args);
     return size;
 }
@@ -361,13 +357,11 @@ int32 searchstr(llist* l, char* ident)
 {
     int32 flag = 0;
     for(int32 x = 0; x < llist_total(l, 0); x++)
-    {
         if(strcmp(ident, llist_get(l, x, 0)) == 0)
         {
             flag = 1;
             break;
         }
-    }
     return flag;
 }
 
@@ -385,10 +379,7 @@ void builderror(char* msg)
 void deletedir(char* name)
 {
     DIR* dir = opendir(name);
-    if(!dir)
-    {
-        return;
-    }
+    if(!dir) return;
     entry ent;
     while( (ent = readdir(dir)) )
     {
@@ -399,9 +390,7 @@ void deletedir(char* name)
                 && strcmp(ent->d_name, "."))
         {
             if(ent->d_type == DT_DIR)
-            {
                 deletedir(path);
-            }
             else remove(path);
         }
     }
@@ -706,9 +695,7 @@ void builder(llist* buildtargets)
         }
     }
     if(errors)
-    {
         error("one or more targets could not be found, aborting");
-    }
     //step 2 - check if all files in given targets are present
     errors = 0;
     for(int32 i = 0; i < llist_total(targets, 0); i++)
@@ -781,9 +768,7 @@ void builder(llist* buildtargets)
             }
         }
         if(errors)
-        {
             printf(ANSI_RED "failed to build target " ANSI_YELLOW "%s" ANSI_RESET "\n" , current->ident);
-        }
         current->built = 1;
     }
     if(errors) error("failed to build one or more targets, aborting");
@@ -803,19 +788,15 @@ void linker(llist* linktargets)
         emkdir(dir, ALLPERMS);
         char* list = " ";
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
-        {
             asprintf(&list, "%s object/%s/%s.o ", list, current->ident, filename( ((file*)llist_get(current->files, j, 0))->name ));
-        }
         for(int32 j = 0; j < llist_total(current->link, 0); j++)
         {
             char* name = llist_get(current->link, j, 0);
             target* trg;
             int8 found = 0;
             for(int32 k = 0; k < llist_total(targets, 0); k++)
-            {
                 if(strcmp(((target*)llist_get(targets, k, 0))->ident, name) == 0)
                     { found = 1; trg = (target*)llist_get(targets, k, 0); break; }
-            }
             if(!found)
             {
                 errors++;
@@ -829,16 +810,12 @@ void linker(llist* linktargets)
                 builder(llist_new(trg->ident));
             }
             for(int32 k = 0; k < llist_total(trg->files, 0); k++)
-            {
                 asprintf(&list, "%s object/%s/%s.o ", list, trg->ident, filename( ((file*)llist_get(trg->files, k, 0))->name ));
-            }
             printf(ANSI_GREEN "\tlinked with: " ANSI_YELLOW "%s" ANSI_RESET "\n", name);
         }
         char* flags = " ";
         for(int32 j = 0; j < llist_total(current->flags, 0); j++)
-        {
             asprintf(&flags, "%s %s", flags, llist_get(current->flags, j, 0));
-        }
         char* cmd;
         char* path = (output_path ? output_path : "output");
         if(current->output) path = current->output;
@@ -857,10 +834,8 @@ void linker(llist* linktargets)
             char *list2 = " ";
             getcwd(cwd, 256);
             for(int32 j = 0; j < llist_total(current->files, 0); j++)
-            {
                 asprintf(&list2, "%s %s/object/%s/%s.o ",
                          list2, cwd, current->ident, filename( ((file*)llist_get(current->files, j, 0))->name ));
-            }
             if (current->output)
             {
                 chdir(path);
