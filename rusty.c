@@ -792,15 +792,15 @@ void builder(llist* buildtargets)
 void linker(llist* linktargets)
 {
     int32 errors = 0;
-    mkdir("output", ALLPERMS);
+    emkdir("output", ALLPERMS);
     for(int32 i = 0; i < llist_total(targets, 0); i++)
     {
         target* current = llist_get(targets, i, 0);
         if(!searchstr(linktargets, current->ident) && !searchstr(linktargets, "all")) continue;
         printf(ANSI_MAGENTA "linking target" ANSI_YELLOW " %s" ANSI_RESET "\n", current->ident);
         char* dir;
-        asprintf(&dir, "output/%s", current->name);
-        mkdir(dir, ALLPERMS);
+        asprintf(&dir, "output/%s", current->ident);
+        emkdir(dir, ALLPERMS);
         char* list = " ";
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
         {
@@ -892,7 +892,7 @@ void linker(llist* linktargets)
                 char *src_path, *dest_path, *output_dir;
                 asprintf(&src_path, "object/%s/%s", current->ident, ent->d_name);
                 asprintf(&output_dir, "output/%s", current->ident);
-                mkdir(output_dir, ALLPERMS);
+                emkdir(output_dir, ALLPERMS);
 
                 if(current->output)
                     asprintf(&dest_path, "%s/%s", current->output, ent->d_name);
