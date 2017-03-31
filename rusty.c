@@ -490,7 +490,7 @@ void parse()
 
     mpca_lang(MPCA_LANG_DEFAULT,
               "ident    : /[a-zA-Z0-9_]+/ ;                                                          \n"
-              "string   : '\"' /([&=$a-zA-Z0-9_\\\\\\/\\.-]|[ ])+/ '\"' ;                            \n"
+              "string   : '\"' /([&=$a-zA-Z0-9_\\\\\\/\\.+-]|[ ])+/ '\"' ;                           \n"
               "name     : \"name\" ':' <string> ';' ;                                                \n"
               "type     : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
               "flags    : \"flags\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                  \n"
