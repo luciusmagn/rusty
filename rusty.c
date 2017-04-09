@@ -23,12 +23,13 @@
 #include "mpc.h"
 #include "arg.h"
 
-//defines
+//macros
 #define error(x)     do { _error(x, __FILE__, __LINE__); } while(0)
 #define emkdir(x,y)  do { if(mkdir(x,y) && access(x, F_OK)) {      \
                             char* msg; asprintf(&msg,"unable to create directory \"%s\"", x);\
                             builderror(msg);\
                             }} while(0)
+#define builderror(msg)   do { printf(ANSI_RED "build error" ANSI_RESET ": \"%s\"\n", msg); } while(0)
 #define parser       mpc_parser_t*
 #define entry        struct dirent*
 #define MAX_DEPTH    10
@@ -41,11 +42,9 @@
 #define ANSI_RESET   "\x1b[0m"
 
 #ifdef _WIN32
-#define PATH_JOIN_SEPERATOR   "\\"
 #define PATH_C '\\'
 #define R_OK _A_NORMAL
 #else
-#define PATH_JOIN_SEPERATOR   "/"
 #define PATH_C '/'
 #endif
 
@@ -125,7 +124,6 @@ int32 vasprintf(char**,const char*,va_list);
 int32 search(llist*, char*);
 int32 searchstr(llist*,char*);
 void _error(char*, char*, int32);
-void builderror(char*);
 void deletedir(char*);
 
 void parse();
@@ -279,9 +277,7 @@ char** strsplit(char* str, const char* delim)
 
     result = malloc(sizeof(char*) * i);
     for(int32 j = 0; j < llist_total(tokens, 0); j++)
-    {
         result[j] = llist_get(tokens, j, 0);
-    }
     return result;
 }
 
@@ -357,11 +353,7 @@ int32 searchstr(llist* l, char* ident)
 {
     int32 flag = 0;
     for(int32 x = 0; x < llist_total(l, 0); x++)
-        if(strcmp(ident, llist_get(l, x, 0)) == 0)
-        {
-            flag = 1;
-            break;
-        }
+        if(strcmp(ident, llist_get(l, x, 0)) == 0) { flag = 1; break; }
     return flag;
 }
 
@@ -369,11 +361,6 @@ void _error(char* msg, char* file, int32 line)
 {
     printf(ANSI_RED "error" ANSI_RESET ": \"%s\"" ANSI_YELLOW " at %s:%d\n" ANSI_RESET, msg, file, line);
     exit(-1);
-}
-
-void builderror(char* msg)
-{
-    printf(ANSI_RED "build error" ANSI_RESET ": \"%s\"\n", msg);
 }
 
 void deletedir(char* name)
@@ -410,39 +397,17 @@ int32 main(int32 argc, char* argv[])
 
     ARGBEGIN
     {
-        case 'h':
-            printhelp();
-            break;
-        case 'd':
-            chdir((++argv)[0]);
-            break;
-        case 'r':
-            opts->fullrebuild = 1;
-            break;
-        case 'i':
-            opts->printinfo = 1;
-            break;
-        case 'a':
-            opts->printast = 1;
-            break;
-        case 'o':
-            output_path = (++argv)[0];
-            break;
-        case 'c':
-            compiler = (++argv)[0];
-            break;
-        case 't':
-            opts->time = 1;
-            break;
-        case 'v':
-            opts->verbose = 1;
-            break;
-        case 'w':
-            opts->wanted_only = 1;
-            break;
-        case 'n':
-            opts->only_check = 1;
-            break;
+        FLAG('h', printhelp())
+        FLAG('d', chdir((++argv)[0]))
+        FLAG('r', opts->fullrebuild = 1)
+        FLAG('i', opts->printinfo = 1)
+        FLAG('a', opts->printast = 1)
+        FLAG('o', output_path = (++argv)[0])
+        FLAG('c', compiler = (++argv)[0])
+        FLAG('t', opts->time = 1)
+        FLAG('v', opts->verbose = 1)
+        FLAG('w', opts->wanted_only = 1)
+        FLAG('n', opts->only_check = 1)
         default:
             printf("unrecognized option: %c\n", ARGC());
             break;
@@ -505,7 +470,7 @@ void parse()
               "output   : \"output\" ':' <string> ';' ;                                              \n"
               "target   : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
               "         (<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;                     \n"
-              "build    : \"build\" <ident> ':' <name> <type>? (<buildtrg> |)+ ';' ;                                 \n"
+              "build    : \"build\" <ident> ':' <name> <type>? (<buildtrg> |)+ ';' ;                 \n"
               "os       : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
               "system   : \"if\" '(' <os> ')' '{' (<target>)+ '}' ;                                  \n"
               "compiler : \"compiler\" ':' <string> ';' ;                                            \n"
@@ -619,7 +584,6 @@ void read_type(mpc_ast_t* ast, target* trg)
     else if(strcmp(ast->children[2]->contents, "libshared") == 0)  trg->type = LIBSHARED;
     else if(strcmp(ast->children[2]->contents, "libstatic") == 0)  trg->type = LIBSTATIC;
     else if(strcmp(ast->children[2]->contents, "object") == 0) trg->type = OBJECT;
-    return;
 }
 
 void read_dir(target* trg, char* name)
@@ -681,7 +645,7 @@ void process(llist* wanted)
 
 void builder(llist* buildtargets)
 {
-    //step 1 - check if all targets are found
+    //check if all targets are found
     int32 errors = 0;
     for(int32 i = 0; i < llist_total(buildtargets, 0); i++)
     {
@@ -696,7 +660,7 @@ void builder(llist* buildtargets)
     }
     if(errors)
         error("one or more targets could not be found, aborting");
-    //step 2 - check if all files in given targets are present
+    //check if all files in given targets are present
     errors = 0;
     for(int32 i = 0; i < llist_total(targets, 0); i++)
     {
@@ -751,9 +715,7 @@ void builder(llist* buildtargets)
             char* cmd;
             char* flags = " ";
             for(int32 j = 0; j < llist_total(current->flags, 0); j++)
-            {
                 asprintf(&flags, "%s %s", flags, llist_get(current->flags, j, 0));
-            }
             asprintf(&cmd, "%s %s %s -c -o object/%s/%s.o",
                      compiler,
                      ((file*)llist_get(current->files, j, 0))->name,
@@ -1011,27 +973,27 @@ int8 option(llist** wanted, char** argv, int* argc)
 {
     if(!argv[0]) return 1;
     if(argv[0][0] == '-' && strlen(argv[0]) > 1 && argv[0][1] != '-') return 1; //TODO8
-         if(strcmp(argv[0], "--ast") == 0) opts->printast = 1;
-    else if(strcmp(argv[0], "--info") == 0) opts->printinfo = 1;
-    else if(strcmp(argv[0], "--time") == 0) opts->time = 1;
-    else if(strcmp(argv[0], "--help") == 0) printhelp();
-    else if(strcmp(argv[0], "--about") == 0) printabout();
-    else if(strcmp(argv[0], "--fullrebuild") == 0) opts->fullrebuild = 1;
-    else if(strcmp(argv[0], "--wanted-only") == 0) opts->wanted_only = 1;
-    else if(strcmp(argv[0], "--check") == 0) opts->only_check = 1;
-    else if(strcmp(argv[0], "--verbose") == 0) opts->verbose = 1;
-    else if(strcmp(argv[0], "clean") == 0) cleanup();
-    else if(strcmp(argv[0], "install") == 0) opts->install = 1;
-    else if(strcmp(argv[0], "uninstall") == 0) opts->uninstall = 1;
-    else if(strcmp(argv[0], "--compiler") == 0 && argv[1]) { compiler = (++argv)[0]; (*argc)++; }
-    else if(strcmp(argv[0], "--output") == 0 && argv[1]) { output_path = (++argv)[0]; (*argc)++; }
-    else if(strcmp(argv[0], "--dir") == 0 && argv[1]) { chdir((++argv)[0]); (*argc)++; }
-    else if(strncmp(argv[0], "--", 2) == 0) printf("unrecognized option: %s\n", argv[0]);
-    else
-    {
-        if(!*wanted) *wanted = llist_new(argv[0]);
-        else llist_put(*wanted, argv[0]);
-    }
+    START_OPTION("--ast", opts->printast = 1)
+          OPTION("--info", opts->printinfo = 1)
+          OPTION("--time", opts->time = 1)
+          OPTION("--help", printhelp())
+          OPTION("--about", printabout())
+          OPTION("--fullrebuild", opts->fullrebuild = 1)
+          OPTION("--wanted-only", opts->wanted_only = 1)
+          OPTION("--check", opts->only_check = 1)
+          OPTION("--verbose", opts->verbose = 1)
+          OPTION("clean", cleanup())
+          OPTION("install", opts->install = 1)
+          OPTION("uninstall", opts->uninstall = 1)
+          PARAMETER("--compiler", compiler = (++argv)[0]; (*argc)++)
+          PARAMETER("--output", output_path = (++argv)[0]; (*argc)++)
+          PARAMETER("--dir", chdir((++argv)[0]); (*argc)++)
+          else if(strncmp(argv[0], "--", 2) == 0) printf("unrecognized option: %s\n", argv[0]);
+          else
+          {
+            if(!*wanted) *wanted = llist_new(argv[0]);
+            else llist_put(*wanted, argv[0]);
+          }
     return 1;
 }
 
@@ -1065,7 +1027,7 @@ void printhelp()
 
 void printabout()
 {
-    puts("Rusty build system, v0.10                                    \n");
+    puts("Rusty build system, v0.11                                    \n");
     puts("Rusty is a simple build system, which borrows its syntax       ");
     puts("from C2's (github.com/c2lang/c2compiler, c2lang.org) built-in  ");
     puts("build system. Rusty uses Daniel Holden's (orangeduck's) mpc    ");

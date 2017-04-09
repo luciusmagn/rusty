@@ -70,5 +70,9 @@ static char *argv0;
                 (brk_ = 1, (argv[0][1] != '\0')?\
                     (&argv[0][1]) :\
                     (argc--, argv++, argv[0])))
+#define FLAG(c, action) case c: action; break;
+#define START_OPTION(name, action) if(strcmp(argv[0], name) == 0) { action; }
+#define OPTION(name, action) else if(strcmp(argv[0], name) == 0) { action; }
+#define PARAMETER(name, action) else if(strcmp(argv[0], name) == 0 && argv[1]) { action; }
 
 #endif
