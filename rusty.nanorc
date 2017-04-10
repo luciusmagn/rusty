@@ -1,0 +1,9 @@
+syntax "Rusty" "rusty\.txt"
+## Keywords
+icolor green "^[[:space:]]*(compiler|target|build)\>"
+icolor brightred "^[[:space:]]*(name|type|flags|output)\>"
+icolor brightblue "^[[:space:]]*(file|depends|dir|install|uninstall|link)\>"
+## Strings
+icolor yellow ""(\\.|[^"])*""
+## Comments
+icolor brightgreen "^[[:space:]]*#.*$"
