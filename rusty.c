@@ -85,6 +85,7 @@ typedef struct
     char* ident;
     char* name;
     char* output;
+    char* sourcedir;
     target_type type;
     llist* files;
     llist* depends;
@@ -446,6 +447,7 @@ void parse()
     parser buildtrg = mpc_new("buildtrg");
     parser dir = mpc_new("dir");
     parser output = mpc_new("output");
+    parser sourcedir = mpc_new("sourcedir");
     parser target = mpc_new("target");
     parser build = mpc_new("build");
     parser os = mpc_new("os");
@@ -468,6 +470,7 @@ void parse()
               "buildtrg : \"build\" ':' <ident> ';' ;                                                \n"
               "dir      : \"dir\" ':' <string> ';' ;                                                 \n"
               "output   : \"output\" ':' <string> ';' ;                                              \n"
+              "sourcedir: \"sourcedir\" ':' <string> ';' ;                                           \n"
               "target   : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
               "         (<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;                     \n"
               "build    : \"build\" <ident> ':' <name> <type>? (<buildtrg> |)+ ';' ;                 \n"
@@ -496,8 +499,8 @@ void parse()
         mpc_err_delete(r.error);
         exit(-1);
     }
-    mpc_cleanup(19, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir, output,
-                    target, build, os, system, compiler, rusty);
+    mpc_cleanup(20, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir, output,
+                    sourcedir, target, build, os, system, compiler, rusty);
 }
 
 void read_ast(mpc_ast_t* ast)
@@ -519,19 +522,44 @@ void read_trg(mpc_ast_t* ast)
     {
         if(strcmp(ast->children[i]->tag, "name|>") == 0) trg->name = get_string(ast->children[i]);
         if(strcmp(ast->children[i]->tag, "output|>") == 0) trg->output = get_string(ast->children[i]);
+        if(strcmp(ast->children[i]->tag, "sourcedir|>") == 0) trg->sourcedir = get_string(ast->children[i]);
         if(strcmp(ast->children[i]->tag, "file|>") == 0)
         {
             file* f = calloc(sizeof(file), 1);
-            f->name = get_string(ast->children[i]);
+            if(trg->sourcedir)
+            {
+                f->name = (char*)malloc(strlen(trg->sourcedir) + strlen(get_string(ast->children[i])) + 1);
+                strcat(f->name, trg->sourcedir);
+                strcat(f->name, "/");
+                strcat(f->name, get_string(ast->children[i]));
+            }
+            else
+                f->name = get_string(ast->children[i]);
             if(ast->children[i]->children[3])
             for(int j = 3; j < ast->children[i]->children[3]->children_num; j++)
             {
                 if(strcmp(ast->children[i]->children[3]->children[j]->tag, "string|>") == 0)
                 {
-                    if(f->depends)
-                        llist_put(f->depends, ast->children[i]->children[3]->children[j]->children[1]->contents);
+                    if(trg->sourcedir)
+                    {
+                        if(f->depends)
+                            llist_put(f->depends, ast->children[i]->children[3]->children[j]->children[1]->contents);
+                        else
+                            f->depends = llist_new(ast->children[i]->children[3]->children[j]->children[1]->contents);
+                    }
                     else
-                        f->depends = llist_new(ast->children[i]->children[3]->children[j]->children[1]->contents);
+                    {
+                        char* tmp = malloc(strlen(ast->children[i]->children[3]->children[j]->children[1]->contents)
+                                           + strlen(trg->sourcedir)
+                                           + 1);
+                        strcat(tmp, trg->sourcedir);
+                        strcat(tmp, "/");
+                        strcat(tmp, ast->children[i]->children[3]->children[j]->children[1]->contents);
+                        if(f->depends)
+                            llist_put(f->depends, tmp);
+                        else
+                            f->depends = llist_new(tmp);
+                    }
                 }
             }
 
