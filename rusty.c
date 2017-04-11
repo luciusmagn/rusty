@@ -27,9 +27,10 @@
 #define error(x)     do { _error(x, __FILE__, __LINE__); } while(0)
 #define emkdir(x,y)  do { if(mkdir(x,y) && access(x, F_OK)) {      \
                             char* msg; asprintf(&msg,"unable to create directory \"%s\"", x);\
-                            builderror(msg);\
+                            builderror(msg); free(msg);\
                             }} while(0)
 #define builderror(msg)   do { printf(ANSI_RED "build error" ANSI_RESET ": \"%s\"\n", msg); } while(0)
+
 #define parser       mpc_parser_t*
 #define entry        struct dirent*
 #define MAX_DEPTH    10
@@ -302,6 +303,9 @@ int8 modified(char* name)
             fputs(checksum_new, sumfile);
             fflush(sumfile);
             fclose(sumfile);
+            free(sumname);
+            free(checksum_new);
+            free(checksum_old);
             return 1;
         }
     }
@@ -311,6 +315,8 @@ int8 modified(char* name)
         fputs(checksum_new, sumfile);
         fflush(sumfile);
         fclose(sumfile);
+        free(sumname);
+        free(checksum_new);
         return 1;
     }
 }
@@ -361,6 +367,7 @@ int32 searchstr(llist* l, char* ident)
 void _error(char* msg, char* file, int32 line)
 {
     printf(ANSI_RED "error" ANSI_RESET ": \"%s\"" ANSI_YELLOW " at %s:%d\n" ANSI_RESET, msg, file, line);
+    free(msg);
     exit(-1);
 }
 
@@ -380,6 +387,7 @@ void deletedir(char* name)
             if(ent->d_type == DT_DIR)
                 deletedir(path);
             else remove(path);
+            free(path);
         }
     }
     rmdir(name);
@@ -424,6 +432,7 @@ int32 main(int32 argc, char* argv[])
     parse();
     if(!wanted) wanted = llist_new("all");
     process(wanted);
+    free(opts);
     clock_t end = clock();
     if(opts->time) printf("execution time: %f seconds\n", (double)(end - begin) / CLOCKS_PER_SEC);
     return 0;
@@ -488,6 +497,7 @@ void parse()
         if(raw[i] == '#') { while(raw[i] != '\n') i++; }
         commentless[k] = raw[i];
     }
+    free(raw);
     if(mpc_parse("rusty.txt", commentless, rusty, &r))
     {
         tree = r.output;
@@ -499,6 +509,7 @@ void parse()
         mpc_err_delete(r.error);
         exit(-1);
     }
+    free(commentless);
     mpc_cleanup(20, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir, output,
                     sourcedir, target, build, os, system, compiler, rusty);
 }
@@ -663,6 +674,7 @@ void read_dir(target* trg, char* name)
             llist_put(trg->files, f);
         }
     }
+    closedir(dir);
     return;
 }
 
@@ -694,6 +706,7 @@ void builder(llist* buildtargets)
             char* msg;
             asprintf(&msg, "target %s not found", llist_get(buildtargets, i, 0));
             builderror(msg);
+            free(msg);
         }
     }
     if(errors)
@@ -719,6 +732,7 @@ void builder(llist* buildtargets)
             char* msg;
             asprintf(&msg, "file %s does not exist or cannot be read", llist_get(current->depends, j, 0));
             builderror(msg);
+            free(msg);
         }
     }
     if(errors) error("one or more files were not accessible, aborting");
@@ -766,7 +780,11 @@ void builder(llist* buildtargets)
                 errors++;
                 printf(ANSI_RED "\tfailed to build file " ANSI_YELLOW "%s" ANSI_RESET "\n", ((file*)llist_get(current->files, j, 0))->name);
             }
+            free(cmd);
+            free(path);
+            free(flags);
         }
+        free(dir);
         if(errors)
             printf(ANSI_RED "failed to build target " ANSI_YELLOW "%s" ANSI_RESET "\n" , current->ident);
         current->built = 1;
@@ -855,6 +873,7 @@ void linker(llist* linktargets)
                 printf(ANSI_RED "failed to link target " ANSI_YELLOW "%s" ANSI_RESET "\n", current->ident);
             }
             chdir(cwd);
+            free(list2);
             break;
         case OBJECT:; //empty statement to convince C that this is not a label in front of a declaraton
             char* path; asprintf(&path, "object/%s", current->ident);
@@ -887,10 +906,15 @@ void linker(llist* linktargets)
                     else   m = 0;
                 } while ((n > 0) && (n == m));
                 if (m) printf(ANSI_RED "error copying file" ANSI_RESET "\n");
-
                 fclose(src);
                 fclose(dest);
+                free(src_path);
+                free(dest_path);
+                free(output_dir);
             }
+            closedir(dir);
+            free(ent);
+            free(path);
             break;
         }
         if(current->type == LIBSTATIC || current->type == OBJECT) continue;
@@ -900,6 +924,11 @@ void linker(llist* linktargets)
             errors++;
             printf(ANSI_RED "failed to link target " ANSI_YELLOW "%s" ANSI_RESET "\n", current->ident);
         }
+        free(flags);
+        free(list);
+        free(path);
+        free(dir);
+        free(cmd);
     }
     if(errors) error("failed to link one or more targets");
 }
@@ -978,9 +1007,7 @@ void handleopts(llist* wanted)
                 {
                     printf("%s (%s", current->name, (char*)llist_get(current->depends, 0, 0));
                     for(int x = 1; x < llist_total(current->depends, 0); x++)
-                    {
                         printf(", %s", (char*)llist_get(current->depends, x, 0));
-                    }
                     printf("), ");
                 }
                 else
@@ -988,19 +1015,13 @@ void handleopts(llist* wanted)
             }
             printf(ANSI_BLUE "\nflags:" ANSI_RESET);
             for(int32 j = 0; j < llist_total(trg->flags, 0); j++)
-            {
                 printf("%s,", (char*)llist_get(trg->flags, j, 0));
-            }
             printf(ANSI_BLUE "\ndepends:" ANSI_RESET);
             for(int32 j = 0; j < llist_total(trg->depends, 0); j++)
-            {
                 printf("%s,", (char*)llist_get(trg->depends, j, 0));
-            }
             printf(ANSI_BLUE "\nlink:" ANSI_RESET);
             for(int32 j = 0; j < llist_total(trg->link, 0); j++)
-            {
                 printf("%s,", (char*)llist_get(trg->link, j, 0));
-            }
             printf("\n");
         }
     }
@@ -1064,7 +1085,7 @@ void printhelp()
 
 void printabout()
 {
-    puts("Rusty build system, v0.11                                    \n");
+    puts("Rusty build system, v0.13                                    \n");
     puts("Rusty is a simple build system, which borrows its syntax       ");
     puts("from C2's (github.com/c2lang/c2compiler, c2lang.org) built-in  ");
     puts("build system. Rusty uses Daniel Holden's (orangeduck's) mpc    ");
