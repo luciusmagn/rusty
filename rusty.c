@@ -777,15 +777,15 @@ void builder(llist* buildtargets)
 void linker(llist* linktargets)
 {
     int32 errors = 0;
-    emkdir("output", ALLPERMS);
     for(int32 i = 0; i < llist_total(targets, 0); i++)
     {
         target* current = llist_get(targets, i, 0);
+        mkdir((current->output ? current->output : "output"), ALLPERMS);
         if(!searchstr(linktargets, current->ident) && !searchstr(linktargets, "all")) continue;
         printf(ANSI_MAGENTA "linking target" ANSI_YELLOW " %s" ANSI_RESET "\n", current->ident);
         char* dir;
         asprintf(&dir, "output/%s", current->ident);
-        emkdir(dir, ALLPERMS);
+        if(!current->output)emkdir(dir, ALLPERMS);
         char* list = " ";
         for(int32 j = 0; j < llist_total(current->files, 0); j++)
             asprintf(&list, "%s object/%s/%s.o ", list, current->ident, filename( ((file*)llist_get(current->files, j, 0))->name ));
