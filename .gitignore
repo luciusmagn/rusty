@@ -1,12 +1,14 @@
+*.o
+*.sum
 .rusty/
-/testc
+testc
 /rusty
 /mpc.a
 /linktest.a
 /linktest
 /mpc
-/output
-/object
+output
+object
 /.rusty/mpc.c.sum
 /.rusty/rusty.c.sum
 /test/.rusty/mpc.c.sum
