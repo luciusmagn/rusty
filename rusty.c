@@ -457,7 +457,7 @@ void parse()
 
     mpca_lang(MPCA_LANG_DEFAULT,
               "ident    : /[a-zA-Z0-9_]+/ ;                                                          \n"
-              "string   : '\"' /([&=$a-zA-Z0-9_\\\\\\/\\.+-]|[ ])+/ '\"' ;                           \n"
+              "string   : '\"' /([^\\\\\"]|\\\\.)*/ '\"' ;                                           \n"
               "name     : \"name\" ':' <string> ';' ;                                                \n"
               "type     : \"type\" ':' (\"executable\"|\"libshared\"|\"libstatic\"|\"object\") ';' ; \n"
               "flags    : \"flags\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                  \n"
@@ -540,7 +540,7 @@ void read_trg(mpc_ast_t* ast)
             {
                 if(strcmp(ast->children[i]->children[3]->children[j]->tag, "string|>") == 0)
                 {
-                    if(trg->sourcedir)
+                    if(!trg->sourcedir)
                     {
                         if(f->depends)
                             llist_put(f->depends, ast->children[i]->children[3]->children[j]->children[1]->contents);
@@ -934,7 +934,6 @@ void handleopts(llist* wanted)
         {
             for(int32 i = 0; i < tree->children_num; i++)
             {
-                printf("wanted only: %d\n", (searchstr(wanted, "all")));
                 if(strcmp(tree->children[i]->tag, "target|>") == 0
                    && (searchstr(wanted, "all") || searchstr(wanted, tree->children[i]->children[1]->contents)))
                     mpc_ast_print(tree->children[i]);
