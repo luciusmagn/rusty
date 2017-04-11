@@ -21,6 +21,8 @@ target rusty:
     install: {
      "cp ./rusty /usr/bin/rusty",
      "chmod 0777 /usr/bin/rusty",
+     "mkdir /usr/man 2> /dev/null",
+     "mkdir /usr/man/man1 2> /dev/null",
      "cp ./rusty.1 /usr/man/man1/",
      "echo updating mandb && mandb -q"
     };
