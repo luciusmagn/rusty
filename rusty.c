@@ -472,14 +472,14 @@ void parse()
               "output   : \"output\" ':' <string> ';' ;                                              \n"
               "sourcedir: \"sourcedir\" ':' <string> ';' ;                                           \n"
               "target   : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
-              "         (<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;                     \n"
+              "         (<sourcedir>|<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;         \n"
               "build    : \"build\" <ident> ':' <name> <type>? (<buildtrg> |)+ ';' ;                 \n"
               "os       : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
               "system   : \"if\" '(' <os> ')' '{' (<target>)+ '}' ;                                  \n"
               "compiler : \"compiler\" ':' <string> ';' ;                                            \n"
               "rusty    : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
               , ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir,
-                output, target, build, os, system, compiler, rusty, NULL);
+                output, sourcedir, target, build, os, system, compiler, rusty, NULL);
 
     char* raw = readfile("rusty.txt");
     char* commentless = calloc(sizeof(char) * strlen(raw), 1);
@@ -528,7 +528,7 @@ void read_trg(mpc_ast_t* ast)
             file* f = calloc(sizeof(file), 1);
             if(trg->sourcedir)
             {
-                f->name = (char*)malloc(strlen(trg->sourcedir) + strlen(get_string(ast->children[i])) + 1);
+                f->name = (char*)calloc(strlen(trg->sourcedir) + strlen(get_string(ast->children[i])) + 1, 1);
                 strcat(f->name, trg->sourcedir);
                 strcat(f->name, "/");
                 strcat(f->name, get_string(ast->children[i]));
@@ -549,9 +549,9 @@ void read_trg(mpc_ast_t* ast)
                     }
                     else
                     {
-                        char* tmp = malloc(strlen(ast->children[i]->children[3]->children[j]->children[1]->contents)
+                        char* tmp = calloc(strlen(ast->children[i]->children[3]->children[j]->children[1]->contents)
                                            + strlen(trg->sourcedir)
-                                           + 1);
+                                           + 1, 1);
                         strcat(tmp, trg->sourcedir);
                         strcat(tmp, "/");
                         strcat(tmp, ast->children[i]->children[3]->children[j]->children[1]->contents);
@@ -568,8 +568,18 @@ void read_trg(mpc_ast_t* ast)
         }
         if(strcmp(ast->children[i]->tag, "depends|>") == 0)
         {
-            if(trg->depends) llist_put(trg->depends, get_string(ast->children[i]));
-            else trg->depends = llist_new(get_string(ast->children[i]));
+            char* tmp;
+            if(trg->sourcedir)
+            {
+                tmp = (char*)calloc(strlen(trg->sourcedir) + strlen(get_string(ast->children[i])) + 1, 1);
+                strcat(tmp, trg->sourcedir);
+                strcat(tmp, "/");
+                strcat(tmp, get_string(ast->children[i]));
+            }
+            else
+                tmp = get_string(ast->children[i]);
+            if(trg->depends) llist_put(trg->depends, tmp);
+            else trg->depends = llist_new(tmp);
         }
         if(strcmp(ast->children[i]->tag, "link|>") == 0)
         {
