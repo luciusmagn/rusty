@@ -31,6 +31,8 @@ target rusty:
      "rm -f /usr/man/man1/rusty.1",
      "echo updating mandb && mandb -q"
     };
+    run: { "echo potato" };
+
 
 target rusty_debug:
     name: "rusty";

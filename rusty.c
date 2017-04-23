@@ -88,6 +88,7 @@ typedef struct
     char* output;
     char* sourcedir;
     target_type type;
+    llist* run;
     llist* files;
     llist* depends;
     llist* flags;
@@ -367,7 +368,6 @@ int32 searchstr(llist* l, char* ident)
 void _error(char* msg, char* file, int32 line)
 {
     printf(ANSI_RED "error" ANSI_RESET ": \"%s\"" ANSI_YELLOW " at %s:%d\n" ANSI_RESET, msg, file, line);
-    free(msg);
     exit(-1);
 }
 
@@ -451,6 +451,7 @@ void parse()
     parser uninstall = mpc_new("uninstall");
     parser attribute = mpc_new("attribute");
     parser file = mpc_new("file");
+    parser run = mpc_new("run");
     parser depends = mpc_new("depends");
     parser link = mpc_new("link");
     parser buildtrg = mpc_new("buildtrg");
@@ -474,6 +475,7 @@ void parse()
               "uninstall: \"uninstall\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;              \n"
               "attribute: '@' \"depends\" '(' <string> (',' <string>)* ')' ;                         \n"
               "file     : \"file\" ':' <string> <attribute>? ';' ;                                   \n"
+              "run      : \"run\" ':' '{' <string> (',' <string>)* ','? '}' ';' ;                    \n"
               "depends  : \"depends\" ':' <string> ';' ;                                             \n"
               "link     : \"link\" ':' <ident> ';' ;                                                 \n"
               "buildtrg : \"build\" ':' <ident> ';' ;                                                \n"
@@ -481,13 +483,13 @@ void parse()
               "output   : \"output\" ':' <string> ';' ;                                              \n"
               "sourcedir: \"sourcedir\" ':' <string> ';' ;                                           \n"
               "target   : \"target\" <ident> ':' <name> <type>? <flags>? <output>?                   \n"
-              "         (<sourcedir>|<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;         \n"
-              "build    : \"build\" <ident> ':' <name> <type>? (<buildtrg> |)+ ';' ;                 \n"
+              "         (<run>|<sourcedir>|<file>|<dir>|<depends>|<install>|<uninstall>|<link>)+ ;   \n"
+              "build    : \"build\" <ident> ':' <name> <type>? (<buildtrg>)+ ';' ;                   \n"
               "os       : (\"windows\" | \"osx\" | \"linux\" | \"unix\" | \"other\") ;               \n"
               "system   : \"if\" '(' <os> ')' '{' (<target>)+ '}' ;                                  \n"
               "compiler : \"compiler\" ':' <string> ';' ;                                            \n"
               "rusty    : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
-              , ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir,
+              , ident, string, name, type, flags, install, uninstall, attribute, file, run, depends, link, buildtrg, dir,
                 output, sourcedir, target, build, os, system, compiler, rusty, NULL);
 
     char* raw = readfile("rusty.txt");
@@ -510,7 +512,7 @@ void parse()
         exit(-1);
     }
     free(commentless);
-    mpc_cleanup(20, ident, string, name, type, flags, install, uninstall, attribute, file, depends, link, buildtrg, dir, output,
+    mpc_cleanup(21, ident, string, name, type, flags, install, uninstall, attribute, file, run, depends, link, buildtrg, dir, output,
                     sourcedir, target, build, os, system, compiler, rusty);
 }
 
@@ -598,6 +600,7 @@ void read_trg(mpc_ast_t* ast)
             else trg->link = llist_new(ast->children[i]->children[2]->contents);
         }
         if(strcmp(ast->children[i]->tag, "dir|>") == 0) read_dir(trg, get_string(ast->children[i]));
+        if(strcmp(ast->children[i]->tag, "run|>") == 0) read_list(ast->children[i], &trg->run);
         if(strcmp(ast->children[i]->tag, "flags|>") == 0) read_list(ast->children[i], &trg->flags);
         if(strcmp(ast->children[i]->tag, "install|>") == 0) read_list(ast->children[i], &trg->install);
         if(strcmp(ast->children[i]->tag, "uninstall|>") == 0) read_list(ast->children[i], &trg->uninstall);
@@ -606,6 +609,12 @@ void read_trg(mpc_ast_t* ast)
 
     if(!targets) targets = llist_new(trg);
     else llist_put(targets, trg);
+
+    for(int32 j = 0; j < llist_total(trg->run, 0); j++)
+    {
+        if(opts->verbose) printf(ANSI_BLUE "exec:" ANSI_GREEN "%s" ANSI_RESET "\n", (char*)llist_get(trg->run, j, 0));
+        system((const char*)llist_get(trg->run, j, 0));
+    }
 }
 
 void read_if(mpc_ast_t* ast)
