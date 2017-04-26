@@ -24,14 +24,13 @@ target rusty:
      "mkdir /usr/man 2> /dev/null",
      "mkdir /usr/man/man1 2> /dev/null",
      "cp ./rusty.1 /usr/man/man1/",
-     "echo updating mandb && mandb -q"
+     "echo updating mandb; mandb -q"
     };
     uninstall: {
      "rm -f /usr/bin/rusty",
      "rm -f /usr/man/man1/rusty.1",
-     "echo updating mandb && mandb -q"
+     "echo updating mandb; mandb -q"
     };
-    run: { "echo potato" };
 
 
 target rusty_debug:
