@@ -853,8 +853,8 @@ void linker(llist* linktargets)
             else asprintf(&cmd, "%s %s %s -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
             break;
         case LIBSHARED:
-            if(current->output) asprintf(&cmd, "%s %s %s -static -o %s/%s.so", compiler, list, flags, path, current->name);
-            else asprintf(&cmd, "%s %s %s -static -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
+            if(current->output) asprintf(&cmd, "%s %s %s -shared -o %s/%s.so", compiler, list, flags, path, current->name);
+            else asprintf(&cmd, "%s %s %s -shared -o %s/%s/%s", compiler, list, flags, path, current->ident, current->name);
             break;
         case LIBSTATIC:; //empty statement to convince C that this is not a label in front of a declaraton
             char cwd[256];
