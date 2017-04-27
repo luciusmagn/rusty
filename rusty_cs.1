@@ -6,35 +6,51 @@ rusty \- malý a rychlý systém pro automatizaci překladu kódu jazyků C, C++
 [\fB\-h\fR] [\fB\-\-help\fR] [\fB\-\-ast\fR] [\fB\-\-info\fR] [\fB\-\-about\fR] [\fB\-viratwn\fR] [\fB\-o\fR \fIDIR\fR] [\fB\-\-output\fR \fIDIR\fR] [\fB\-d\fR \fIDIR\fR] [\fB\-\-dir\fR \fIDIR\fR] [\fB\-c\fR \fICOMPILER\fR] [\fB\-\-compiler\fR \fICOMPILER\fR] [\fB\-o\fR \fIDIR\fR] [\fITARGETS\fR] [\fBclean\fR] [\fBinstall\fR] [\fBuninstall\fR]
 .SH DESCRIPTION
 .B rusty
-is a simple build system, which borrowed its core syntax from C2's built-in build system. Rusty uses Daniel Holden's (orangeduck's) mpc. At the moment, rusty can handle four types of targets: executables, shared and static libraries and object-code only targets. Rusty requires a rustyfile (rusty.txt) somewhere in the cwd path. Rusty searches for it recursively, so you don't have to worry about executing it from your projects' subdirectories.
+je jednoduchý systém pro automatizaci překladu, který si původně zapůjčil syntaxi a koncepty ze zabudovaného systému pro jazyk C2. Rusty používá parsovací knihovnu mpc Daniela Holdena. Momentálně rozpoznává Rusty čtyři typy cílů: spustitelné soubory, statické knihovny, sdílené/dynamické knihovny a cíle objektového kódu. Rusty vyžaduje rustyfile (soubor rusty.txt). Rusty tento soubor hledá iterativně, takže není problém jej spouštět z pod-adresářů projektu.
 .SH OPTIONS
 .TP
 .BR \-h ", " \-\-help\fR
-Print a basic help text.
+Zobrazí základní text pomoci
 .TP
 .BR \-\-about\fR
-Print a basic about text with even more basic usage example.
+Zobrazí text popisující Rusty a příklad použití.
 .TP
 .BR \-c ", " \-\-compiler " " \fIname\fR
-Change the compiler used to process files.
+Změní překladač použitý ke zpracování souborů.
 .TP
 .BR \-i ", " \-\-info\fR
-Print info about each target found in the rustyfile.
+Zobrazí informace o každém z cílů nalezeném v rustyfilu.
 .TP
 .BR \-d ", " \-\-dir " " \fIpath\fR
-Change directory before looking for rustyfile.
+Změní pracovní adressář před startem hledání rustyfilu.
 .TP
 .BR \-r ", " \-\-fullrebuild\fR
-Recompile all files regardless of whether or not has it been modified. Useful if compilation fails, because atm, Rusty can't detect if the compilation has failed or not.
-.TP
-.BR \-o ", " \-\-output " " \fIpath\fR
-Change the output directory for targets
+Znovu postaví všechny soubory bez ohledu na to jestli byly modifikovány. Užitečné pokud se nepodaří kompilace a řešením problému byla změna, která nezasahovala do zdrojových souborů.
 .TP
 .BR \-t ", " \-\-time\fR
-Measure and print the CPU clock time rusty's execution took. Note that the CPU time is much shorter than the total time execution took.
+Změří a vypíše CPU čas, jaký spuštění Rusty trvalo. Poznámka: CPU čas bývá výrazně kratší než by byl reálný čas.
 .TP
 .BR \-n ", " \-\-check\fR
-Just check the rustyfile and don't compile or build anything. Other command\-line arguments still processed.
+Pouze zkontroluje rustyfile a nic nepřekládá/nesetavuje. Ostatní přepínače jsou stále zpracovávány. Nevztahuje se na 'run' tagy, které běží tak jako tak.
 .TP
 .BR \-w ", " \-\-wanted\-only\fR
-Show info & ast only for desired targets, not the whole rustyfile. usage of \-i and \-a is still required for the information to show.
+Zobrazí informace a abstraktní syntaxní strom pouze pro specifikované cíle, ne celý rustyfile. Neimplikuje přepínače -i a -a, je nutné je použít v konjukci s -w aby se informace zobrazily.
+.SH MODUS OPERANDI
+.nr step 1 1
+.IP \fB\n[step] 6\fR
+Rusty přečte parametry z příkazového řádku a začne hledat rustyfile.
+.IP \fB\n[step] \fR
+Po nalezení rustyfilu dojde k jeho přečtení, vymazání komentářů a následnému parsování.
+.IP \fB\n[step] \fR
+Na základě informací přečtených ze syntaxního stromu vytvoří Rusty cíle. 'run' tagy jsou okamžitě po přečtení spuštěny.
+.IP \fB\n[step] \fR
+Rusty zkontroluje jestli pro všechny požadované cíle existují jejich soubory a vypíše chybu není-li tomu tak.
+.IP \fB\n[step] \fR
+U každého souboru dojde ke kontrole, zda-li byl modifikován od předchozí kompilace. Má-li soubor @depends() atribut, jsou i zkontrolovány všechny soubory, zde specifikované. Dojde-li ke změně globálního závislotního souboru, je modifikovanost ignorována a všechny soubory jsu přeloženy znovu. Za tímto účelem vytváří Rusty anekdotálně minimální metadata ve složce .rusty v kořenovém adresáři projektu.
+.IP \fB\n[step] \fR
+Po kompilaci všech souborů, pokud je úspěšná, dochází k linkovací části programu. Pro binární soubory se využije překladače bez nějakých přídavných přepínačů. Pro sdílené knihovny se používá přepínač -shared, očekává se, ke kompilaci dodá uživatel přepínač -fPIC sám, uzná-li to za vhodné. Statické knihovny jsou vytvořené pomocí utility ar.
+.IP \fB\n[step] \fR
+Pokud byl na začátku specifikován cíl 'install' nebo 'uninstall', provede Rusty patřičnou operaci. Rusty povoluje jak instalaci tak odinstalaci najednou, i když se zeptá uživatele, zda-li je to úmyslné.
+.SH LIMITACE
+    Rusty občas nedokáže vždy určit, zda-li se překlad povedl. Problémy také dělá, když se v rustyfilech vyskytuje nekonsistentní ukončení řádků. Při (od)instalaci cílů neví, jestli má dostatečná práva
+
