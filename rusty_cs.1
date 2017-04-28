@@ -6,7 +6,9 @@ rusty \- malý a rychlý systém pro automatizaci překladu kódu jazyků C, C++
 [\fB\-h\fR] [\fB\-\-help\fR] [\fB\-\-ast\fR] [\fB\-\-info\fR] [\fB\-\-about\fR] [\fB\-viratwn\fR] [\fB\-o\fR \fIDIR\fR] [\fB\-\-output\fR \fIDIR\fR] [\fB\-d\fR \fIDIR\fR] [\fB\-\-dir\fR \fIDIR\fR] [\fB\-c\fR \fICOMPILER\fR] [\fB\-\-compiler\fR \fICOMPILER\fR] [\fB\-o\fR \fIDIR\fR] [\fITARGETS\fR] [\fBclean\fR] [\fBinstall\fR] [\fBuninstall\fR]
 .SH DESCRIPTION
 .B rusty
-je jednoduchý systém pro automatizaci překladu, který si původně zapůjčil syntaxi a koncepty ze zabudovaného systému pro jazyk C2. Rusty používá parsovací knihovnu mpc Daniela Holdena. Momentálně rozpoznává Rusty čtyři typy cílů: spustitelné soubory, statické knihovny, sdílené/dynamické knihovny a cíle objektového kódu. Rusty vyžaduje rustyfile (soubor rusty.txt). Rusty tento soubor hledá iterativně, takže není problém jej spouštět z pod-adresářů projektu.
+je jednoduchý systém pro automatizaci překladu, který si původně zapůjčil syntaxi a koncepty ze zabudovaného systému pro jazyk C2. Syntaxe a schopnosti projektu se ovšem postupně rozrostly a nyní Rusty podporuje nejen jednoduchou kompilaci ale také inkrementální kompilaci, načítání zdrojových souborů z jedné složky, změnu kořenového adresáře projektu, podmíněné sestavování (podle operačního systému) linkování mezi cíly, příkazy pro instalaci a odinstalaci, spouštění příkazů před kompilací, přidávání přepínačů překladači a kontrolu na kterých souborech je který zdrojový soubor závislý a na kterých souborech je závislý celý projekt.
+    Rusty používá parsovací knihovnu mpc Daniela Holdena k načítání informací o jednotlivých cílech. Momentálně rozpoznává Rusty čtyři typy cílů: spustitelné soubory, statické knihovny, sdílené/dynamické knihovny a cíle objektového kódu, kdy nedojde k finálnímu sestavování do binárního souboru, ale pouze tvorbě objektového kódu. Rusty vyžaduje rustyfile (soubor rusty.txt). Rusty tento soubor hledá iterativně, takže není problém jej spouštět z pod-adresářů projektu.
+Filozofie projektu Rusty se je inspirována filozofií skupiny suckless.org. Rusty se snaží být co nejmenší (rusty.c jen něco málo přes tisíc řádků), co nejpoužitelnější a hojně využívat možnosti programovacího jazyka C.
 .SH OPTIONS
 .TP
 .BR \-h ", " \-\-help\fR
@@ -52,5 +54,257 @@ Po kompilaci všech souborů, pokud je úspěšná, dochází k linkovací čás
 .IP \fB\n[step] \fR
 Pokud byl na začátku specifikován cíl 'install' nebo 'uninstall', provede Rusty patřičnou operaci. Rusty povoluje jak instalaci tak odinstalaci najednou, i když se zeptá uživatele, zda-li je to úmyslné.
 .SH LIMITACE
-    Rusty občas nedokáže vždy určit, zda-li se překlad povedl. Problémy také dělá, když se v rustyfilech vyskytuje nekonsistentní ukončení řádků. Při (od)instalaci cílů neví, jestli má dostatečná práva
+    Rusty občas nedokáže vždy určit, zda-li se překlad povedl. Problémy také dělá, když se v rustyfilech vyskytuje nekonsistentní ukončení řádků. Při (od)instalaci cílů neví, jestli má dostatečná práva.
+.SH MAPA KÓDU
+.TP
+.BR \fBarg.h\fR
+Modifikovaný headr pro zpracování přepínačů z příkazové řádky. Původně napsáno Christopherem Lohmannem. Změny zahrnují možnost dát přepínače kamkoliv do příkazu, přepínače ve formě celých slov (např. \fB\-\-version\fR), makra pro jednoduché přepínače a integrace s Rusty. Verze 'arg.h' obsažená v Rusty je nepoužitelná mimo něj.
+.TP
+.BR \fBdirent.h\fR
+Implementace rozhraní 'dirent' pro platformu Win32 napsaná Toni Ronkkem. Nutná, protože Rusty využívá rozhraní dirent ke čtení složek.
+.TP
+.BR \fBmpc.c/h\fR
+Parsovací knihovna mpc od Daniela Holdena. Modifikovaná verze je identická s tou vloženou do projektu c2tc
+.TP
+.BR \fBrusty.c\fR
+Hlavní soubor, který obsahuje drtivou většinu kódu, který není součástí vložených knihoven mpc, dirent.h a arg.h.
+.TP
+.BR \fButil.h\fR
+Soubor, který definuje aliasy pro číselné typy a implementaci funkce strdup() pro systémy, na kterých není přítomna.
+.SH PŘÍKLADY
+Samotný Rusty má vlastní rustyfile v kořenovém adresáři, kterým jej jde postavit a instalovat. Standardní postup při instalaci je použití skriptu 'compile.sh', zkompilování Rusty pomocí této verze sebe sama, a následná instalace pomocí nové vere. To znamená zhruba tento postup:
 
+ $ ./compile.sh
+ #rustyfile projektu obsahuje dva cíle: rusty a rusty_debug. Bez specifikace by se postavily všechny cíle najednou.
+ $ ./rusty rusty
+ $ sudo rusty install #v tomto příadě zkopíruje binární soubor do /usr/bin a nainstaluje manuálovou stránku
+
+Další příklad(y) lze najít ve složce test. Soubor rusty.txt.concept obsahuje i budoucí plánované funkce, které ještě nejsou implementovány. Pro pohodlí prohlížení rustyfilů je v kořenovém adresáři soubor rusty.nanorc, který obsahuje zvýrazňování syntaxe pro rustyfily.
+.SH SYNTAXE
+Přesnou gramatiku rustyfilů lze najít v souboru rusty.c ve funkci parse(), ale tato sekce se pokusí alespoň částečně popsat tvorbu rustyfilu.
+Rustyfile se zkládá z definice překladače a jednoho nebo více cílů. Definice překladače se vytvoří klíčovým slovem 'compiler', dvojtečky, jména překladače ve formě textového řetězce a středníku. Cíl je deklarován pomocí klíčového slova 'target', identifikátoru pro cíl a dvojtečky. Identifikátor vůbec nesousiví s finálním názvem binárního souboru. Příklad:
+
+ compiler: "gcc";
+
+ \fBtarget jablko:
+ target malina:
+ target brambora:\fR
+
+Tyto cíle ovšem nejsou validní, protože Rusty vyžaduje alespoň tag "name" a k tomu jeden funkční tag. Tag name specifikujenázev binárního souboru, který bude vytvořen. Z hlediska formy patří mezi řetězcové tagy (tzn. vyžaduje jeden a pouze jeden textový řetězec). Každý řetězcový tag je musí být ukončen středníkem.
+
+ compiler: "gcc";
+
+ \fBtarget jablko:\fR
+ 	name: "meloun";
+
+ \fBtarget malina:\fR
+ 	name: "jahoda";
+
+ \fBtarget brambora:\fR
+ 	name: "lilek";
+
+V minulém příkladu jsou všechny tagy odsazen, ale to je jen otázka stylu/čitelnosti. Rusty kompletně ignoruje bílé znaky mezi tokeny. Speciální tag je tag 'type'. Může být použit k určení typu cíle. Není vyžadován, Rusty předpokládá spustitelný soubor. Tento předpoklad ovšem závisí na tom, že funkce calloc() bude vynulovávat přidělenou paměť, proto je lepší vždy typ specifikovat ručně.
+
+ compiler: "gcc";
+
+ \fBtarget jablko:\fR
+ 	name: "meloun";
+ 	type: executable;
+
+ \fBtarget malina:\fR
+ 	name: "jahoda";
+ 	type: object;
+
+ \fBtarget brambora:\fR
+ 	name: "lilek";
+ 	type: libstatic;
+
+Další tagem je tag 'flags', který přidává přepínače k překladači jak během kompilace, tak i sestavování cíle. Tag flags zneužívá toho, že většina překladačů jazyka C a C++ ignoruje značky, které se nehodí pro danou fázi sestavování. Tag flags je seznamový tag, což znamená že místo jednoho řetězce jich bere celý seznam uzavřený ve složených závorkách. Seznam musí obsahovat jeden a více řetězců, prázdné seznamy nejsou povoleny. Stejně jako ostatní tagy jsou uzavřeny středníkem
+
+ compiler: "gcc";
+
+ \fBtarget jablko:\fR
+ 	name: "meloun";
+ 	type: executable;
+ 	flags: { "-Wall", "-std=c89" };
+
+ \fBtarget malina:\fR
+ 	name: "jahoda";
+ 	type: object;
+ 	flags: { "-Wall", "-std=c89" };
+
+
+ \fBtarget brambora:\fR
+ 	name: "lilek";
+ 	type: libstatic;
+ 	flags: { "-Wall", "-std=c89" };
+
+Tag output je posledním nefunkčním tagem. Mění do jaké složky se uloží výsledné binární soubory. Výchozí chování je slozka output/nazev_projektu v kořenovém adresáři projektu. Nutno podotknout, že Rusty nevytváří tyto složky automaticky, je nutno je vytvořit předem, napříklac pomocí run tagu, který je popsán níže.
+
+ compiler: "gcc";
+
+ \fBtarget jablko:\fR
+ 	name: "meloun";
+ 	type: executable;
+ 	flags: { "-Wall", "-std=c89" };
+ 	output: ".";
+
+ \fBtarget malina:\fR
+ 	name: "jahoda";
+ 	type: object;
+ 	flags: { "-Wall", "-std=c89" };
+ 	output: ".";
+
+ \fBtarget brambora:\fR
+ 	name: "lilek";
+ 	type: libstatic;
+ 	flags: { "-Wall", "-std=c89" };
+ 	output: ".";
+
+Řetězcové funkční tagy jsou: 'sourcedir', 'file', 'dir', 'depends' a 'link'.
+    Tag sourcedir určuje v jaké složce začíná Rusty hledat soubory specifikované pomocí tagu file. Sourcedir nemění pracovní adresář, nýbrž přidává specifikovanou cestu jako předponu k souborům.
+    Tag file může mít u sebe atribut @depends(), který určuje na jakých jiných souborech daný zdrojový soubor závisí ve formě odčárkovaného seznamu řetězců.
+    Depends určuje soubor, na kterém závisí celý cíl a který při změně způsobí překlad a sestavení celého cíle. Tag depends se zejména hodí, když má projekt headery, které jsou vloženy do většiny zdrojových souborů.
+    Tag dir najde všechny zdrojové soubory v dané složce podle přípon souborů. Seznam souborových přípon, které Rusty rozpoznává je vypsán ve funkci read_dir().
+    Tag link přidá do sestavování i objektový kód jiného cíle. Pokud cíl, jehož objektový kód je přidaván, není ještě sestavený, rusty jej nejdříve sestaví.
+
+ compiler: "gcc";
+
+\fBtarget jablko:\fR
+ 	name: "meloun";
+ 	type: executable;
+ 	flags: { "-Wall", "-std=c89" };
+ 	output: ".";
+ 	sourcedir: "src";
+ 	depends: "soubor.h";
+ 	file: "potato.c";
+ 	file: "potato2.c" @depends("potato.h", "util.h");
+ 	dir: "brambory";
+ 	link: mpc;
+
+\fBtarget malina:\fR
+ 	name: "jahoda";
+ 	type: object;
+ 	flags: { "-Wall", "-std=c89" };
+ 	output: ".";
+ 	sourcedir: "src";
+ 	depends: "soubor.h";
+ 	file: "potato.c";
+ 	file: "potato2.c" @depends("potato.h", "util.h");
+ 	dir: "brambory";
+ 	link: mpc;
+
+
+\fBtarget brambora:\fR
+ 	name: "lilek";
+ 	type: libstatic;
+ 	flags: { "-Wall", "-std=c89" };
+ 	output: ".";
+ 	sourcedir: "src";
+ 	depends: "soubor.h";
+ 	file: "potato.c";
+ 	file: "potato2.c" @depends("potato.h", "util.h");
+ 	dir: "brambory";
+ 	link: mpc;
+
+Seznamové tagy jsou 'run', 'install' a 'uninstall'. Tag run spouští příkazy v okamžiku kdy jsou přečteny, bez ohledu na to, jestli je cíl vybrán pro kompilaci. Pokud se dostane Rusty mezi argumenty i slova install a uninstall, spustí patřičné příkazy.
+
+ compiler: "gcc";
+
+ \fBtarget jablko:\fR
+ 	name: "meloun";
+ 	type: executable;
+ 	flags: { "-Wall", "-std=c89" };
+ 	output: ".";
+ 	sourcedir: "src";
+ 	depends: "soubor.h";
+ 	file: "potato.c";
+ 	file: "potato2.c" @depends("potato.h", "util.h");
+ 	dir: "brambory";
+ 	link: mpc;
+ 	run:
+ 	{
+ 		"echo jablko",
+ 		"cowsay 123"
+ 	};
+ 	install:
+ 	{
+ 		"echo instalace jablka",
+ 		"cowsay 321"
+ 	};
+ 	uninstall:
+ 	{
+ 		"echo odinstalace jablka",
+ 		"cowsay 231"
+ 	};
+
+ \fBtarget malina:\fR
+ 	name: "jahoda";
+ 	type: object;
+ 	flags: { "-Wall", "-std=c89" };
+ 	output: ".";
+ 	sourcedir: "src";
+ 	depends: "soubor.h";
+ 	file: "potato.c";
+ 	file: "potato2.c" @depends("potato.h", "util.h");
+ 	dir: "brambory";
+ 	link: mpc;
+ 	run:
+ 	{
+ 		"echo jablko",
+ 		"cowsay 123"
+ 	};
+ 	install:
+ 	{
+ 		"echo instalace jablka",
+ 		"cowsay 321"
+ 	};
+ 	uninstall:
+ 	{
+ 		"echo odinstalace jablka",
+ 		"cowsay 231"
+ 	};
+
+
+ \fBtarget brambora:\fR
+ 	name: "lilek";
+ 	type: libstatic;
+ 	flags: { "-Wall", "-std=c89" };
+ 	output: ".";
+ 	sourcedir: "src";
+ 	depends: "soubor.h";
+ 	file: "potato.c";
+ 	file: "potato2.c" @depends("potato.h", "util.h");
+ 	dir: "brambory";
+ 	link: mpc;
+ 	run:
+ 	{
+ 		"echo jablko",
+ 		"cowsay 123"
+ 	};
+ 	install:
+ 	{
+ 		"echo instalace jablka",
+ 		"cowsay 321"
+ 	};
+ 	uninstall:
+ 	{
+ 		"echo odinstalace jablka",
+ 		"cowsay 231"
+ 	};
+
+
+Poznámka: Na pořadí funkčních tagů nezáleží, ale pořadí hlavičkoých tagů (name, type, flags, output) ano. V tomto návodu jsou specifikovány v patřičném pořadí.
+
+.SH LICENCE
+Rusty je licencován licencí 'Fair License'. Jedná se o absolutně minimální licenci, což jde v duchu s filozofií projektu Rusty (co nejvíce funkčnosti s co nejméně řádky kódu). Plné znění je v souboru LICENSE a zde:
+
+Fair License
+
+Lukáš Hozda(c), 2015-2017
+
+Usage of the works is permitted provided that this
+instrument is retained with the works, so that any
+entity that uses the works is notified of this instrument.
+
+DISCLAIMER: THE WORKS ARE WITHOUT WARRANTY.
