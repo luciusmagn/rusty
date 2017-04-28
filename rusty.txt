@@ -41,3 +41,9 @@ target rusty_debug:
     file: "mpc.c";
     file: "rusty.c" @depends("util.h", "dirent.h", "arg.h");
     depends: "mpc.h";
+
+target testato:
+    name: "brondato";
+    run: {
+        "echo testato"
+    };

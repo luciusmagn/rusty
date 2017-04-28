@@ -491,7 +491,6 @@ void parse()
               "rusty    : /^/ <compiler> (<target> | <system>)+ /$/ ;                                \n"
               , ident, string, name, type, flags, install, uninstall, attribute, file, run, depends, link, buildtrg, dir,
                 output, sourcedir, target, build, os, system, compiler, rusty, NULL);
-
     char* raw = readfile("rusty.txt");
     char* commentless = calloc(sizeof(char) * strlen(raw), 1);
     for (int32 i = 0, k = 0; i < strlen(raw); i++, k++)
@@ -807,6 +806,7 @@ void linker(llist* linktargets)
     for(int32 i = 0; i < llist_total(targets, 0); i++)
     {
         target* current = llist_get(targets, i, 0);
+        if(!llist_total(current->files, 0)) continue;
         mkdir((current->output ? current->output : "output"), ALLPERMS);
         if(!searchstr(linktargets, current->ident) && !searchstr(linktargets, "all")) continue;
         printf(ANSI_MAGENTA "linking target" ANSI_YELLOW " %s" ANSI_RESET "\n", current->ident);
