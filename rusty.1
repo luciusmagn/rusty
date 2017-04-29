@@ -1,0 +1,40 @@
+.TH RUSTY 1
+.SH NAME
+rusty \- small and fast build system for C, C++ and possibly more
+.SH SYNOPSIS
+.B rusty
+[\fB\-h\fR] [\fB\-\-help\fR] [\fB\-\-ast\fR] [\fB\-\-info\fR] [\fB\-\-about\fR] [\fB\-viratwn\fR] [\fB\-o\fR \fIDIR\fR] [\fB\-\-output\fR \fIDIR\fR] [\fB\-d\fR \fIDIR\fR] [\fB\-\-dir\fR \fIDIR\fR] [\fB\-c\fR \fICOMPILER\fR] [\fB\-\-compiler\fR \fICOMPILER\fR] [\fB\-o\fR \fIDIR\fR] [\fITARGETS\fR] [\fBclean\fR] [\fBinstall\fR] [\fBuninstall\fR]
+.SH DESCRIPTION
+.B rusty
+is a simple build system, which borrowed its core syntax from C2's built-in build system. Rusty uses Daniel Holden's (orangeduck's) mpc. At the moment, rusty can handle four types of targets: executables, shared and static libraries and object-code only targets. Rusty requires a rustyfile (rusty.txt) somewhere in the cwd path. Rusty searches for it recursively, so you don't have to worry about executing it from your projects' subdirectories.
+.SH OPTIONS
+.TP
+.BR \-h ", " \-\-help\fR
+Print a basic help text.
+.TP
+.BR \-\-about\fR
+Print a basic about text with even more basic usage example.
+.TP
+.BR \-c ", " \-\-compiler " " \fIname\fR
+Change the compiler used to process files.
+.TP
+.BR \-i ", " \-\-info\fR
+Print info about each target found in the rustyfile.
+.TP
+.BR \-d ", " \-\-dir " " \fIpath\fR
+Change directory before looking for rustyfile.
+.TP
+.BR \-r ", " \-\-fullrebuild\fR
+Recompile all files regardless of whether or not has it been modified. Useful if compilation fails, because atm, Rusty can't detect if the compilation has failed or not.
+.TP
+.BR \-o ", " \-\-output " " \fIpath\fR
+Change the output directory for targets
+.TP
+.BR \-t ", " \-\-time\fR
+Measure and print the CPU clock time rusty's execution took. Note that the CPU time is much shorter than the total time execution took.
+.TP
+.BR \-n ", " \-\-check\fR
+Just check the rustyfile and don't compile or build anything. Other command\-line arguments still processed.
+.TP
+.BR \-w ", " \-\-wanted\-only\fR
+Show info & ast only for desired targets, not the whole rustyfile. usage of \-i and \-a is still required for the information to show.
