@@ -294,36 +294,6 @@ int8 modified(char* name)
     free(sumname);
     free(checksum_new);
     return res;
-/*    if (access(sumname, R_OK) == 0)
-    {
-        char* checksum_old = readfile(sumname);
-        if (strcmp(checksum_old, checksum_new) == 0)
-        {
-	        free(sumname);
-	        free(checksum_new);
-	        free(checksum_old);
-        	return 0;
-        }
-        remove(sumname);
-        FILE* sumfile = fopen(sumname, "w+");
-        fputs(checksum_new, sumfile);
-        fflush(sumfile);
-        fclose(sumfile);
-        free(sumname);
-        free(checksum_new);
-        free(checksum_old);
-        return 1;
-    }
-    else
-    {
-        FILE* sumfile = fopen(sumname, "w+");
-        fputs(checksum_new, sumfile);
-        fflush(sumfile);
-        fclose(sumfile);
-        free(sumname);
-        free(checksum_new);
-        return 1;
-    }*/
 }
 
 #ifndef HAVE_ASPRINTF
