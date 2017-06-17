@@ -114,13 +114,12 @@ llist* llist_new(void*);
 int32 llist_total(llist*, int32);
 void llist_put(llist*, void*);
 void* llist_get(llist*, int32, int32);
+void llist_free(llist*);
 
-char* get_line(char*,int32);
 char* get_string(mpc_ast_t*);
 char* adler32(const char*, uint64);
 char* readfile(const char*);
 char* filename(char*);
-char** strsplit(char*, const char*);
 int8 modified(char*);
 int32 asprintf(char**,const char*,...);
 int32 vasprintf(char**,const char*,va_list);
@@ -128,6 +127,7 @@ int32 search(llist*, char*);
 int32 searchstr(llist*,char*);
 void _error(char*, char*, int32);
 void deletedir(char*);
+void deleteast(mpc_ast_t*);
 
 void parse();
 
@@ -160,9 +160,9 @@ mpc_ast_t* tree;
 llist* targets = NULL;
 
 
-/*************
- **FUNCTIONS**
- *************/
+/*
+** Functions
+*/
 
 //linked list implementation
 llist* llist_new(void* first)
@@ -198,13 +198,14 @@ void* llist_get(llist* l, int32 index, int32 carry)
     if(carry == index && l->data != NULL) return l->data;
     return NULL;
 }
-
-//utils
-char* get_line(char* src, int32 index)
+void llist_free(llist* l)
 {
-    return strsplit(src, "\n")[index];
+	if(!l) return;
+	else free(l->n);
+	free(l);
 }
 
+//utils
 char* get_string(mpc_ast_t* ast)
 {
     return ast->children[2]->children[1]->contents;
@@ -264,26 +265,6 @@ char* filename(char* path)
     else return path;
 }
 
-char** strsplit(char* str, const char* delim)
-{
-    int32 i = 1;
-    char* tok;
-    char** result;
-    llist* tokens;
-    tok = strtok(str, delim);
-    tokens = llist_new(tok);
-    while( (tok = strtok(NULL, delim)) )
-    {
-        llist_put(tokens, tok);
-        i++;
-    }
-
-    result = malloc(sizeof(char*) * i);
-    for(int32 j = 0; j < llist_total(tokens, 0); j++)
-        result[j] = llist_get(tokens, j, 0);
-    return result;
-}
-
 int8 modified(char* name)
 {
     if(opts->fullrebuild) return 1;
@@ -293,22 +274,45 @@ int8 modified(char* name)
     emkdir(".rusty", ALLPERMS);
     char* sumname;
     asprintf(&sumname, ".rusty/%s.sum", filename(name));
-    if (access(sumname, R_OK) == 0)
+    int8 res = 0;
+    if(access(sumname, R_OK) == 0)
+    {
+    	char* checksum_old = readfile(sumname);
+    	if(strcmp(checksum_old, checksum_new) != 0) res = 1;
+    	else
+    	{
+        	remove(sumname);
+       		FILE* sumfile = fopen(sumname, "w+");
+        	fputs(checksum_new, sumfile);
+    	    fflush(sumfile);
+	        fclose(sumfile);
+            free(checksum_old);
+    	}
+    }
+    else res = 1;
+
+    free(sumname);
+    free(checksum_new);
+    return res;
+/*    if (access(sumname, R_OK) == 0)
     {
         char* checksum_old = readfile(sumname);
-        if (strcmp(checksum_old, checksum_new) == 0) return 0;
-        else
+        if (strcmp(checksum_old, checksum_new) == 0)
         {
-            remove(sumname);
-            FILE* sumfile = fopen(sumname, "w+");
-            fputs(checksum_new, sumfile);
-            fflush(sumfile);
-            fclose(sumfile);
-            free(sumname);
-            free(checksum_new);
-            free(checksum_old);
-            return 1;
+	        free(sumname);
+	        free(checksum_new);
+	        free(checksum_old);
+        	return 0;
         }
+        remove(sumname);
+        FILE* sumfile = fopen(sumname, "w+");
+        fputs(checksum_new, sumfile);
+        fflush(sumfile);
+        fclose(sumfile);
+        free(sumname);
+        free(checksum_new);
+        free(checksum_old);
+        return 1;
     }
     else
     {
@@ -319,9 +323,10 @@ int8 modified(char* name)
         free(sumname);
         free(checksum_new);
         return 1;
-    }
+    }*/
 }
 
+#ifndef HAVE_ASPRINTF
 int32 asprintf(char **str, const char *fmt, ...)
 {
     int size = 0;
@@ -347,6 +352,7 @@ int32 vasprintf(char **str, const char *fmt, va_list args)
     size = vsprintf(*str, fmt, args);
     return size;
 }
+#endif
 
 int32 search(llist* l, char* ident)
 {
@@ -393,6 +399,13 @@ void deletedir(char* name)
     rmdir(name);
 }
 
+void deleteast(mpc_ast_t* a)
+{
+	for (int32 i = 0; i < a->children_num; i++)
+		deleteast(a->children[i]);
+	free(a);
+}
+
 
 /*****************************
  *           MAIN            *
@@ -432,9 +445,10 @@ int32 main(int32 argc, char* argv[])
     parse();
     if(!wanted) wanted = llist_new("all");
     process(wanted);
-    free(opts);
     clock_t end = clock();
     if(opts->time) printf("execution time: %f seconds\n", (double)(end - begin) / CLOCKS_PER_SEC);
+	free(opts);
+	llist_free(wanted);
     return 0;
 }
 
@@ -524,6 +538,8 @@ void read_ast(mpc_ast_t* ast)
         if(strcmp(ast->children[i]->tag, "target|>") == 0) read_trg(ast->children[i]);
         if(strcmp(ast->children[i]->tag, "system|>") == 0) read_if(ast->children[i]);
     }
+
+    deleteast(ast);
 }
 
 void read_trg(mpc_ast_t* ast)

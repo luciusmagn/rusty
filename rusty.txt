@@ -13,7 +13,7 @@ compiler: "gcc";
 target rusty:
     name: "rusty";
     type: executable;
-    flags: { "-Wall", "-std=gnu99" };
+    flags: { "-Wall", "-std=gnu99", "-Wno-format-truncation" };
     output: ".";
     file: "mpc.c";
     file: "rusty.c" @depends("util.h", "dirent.h", "arg.h");
@@ -36,7 +36,7 @@ target rusty:
 target rusty_debug:
     name: "rusty";
     type: executable;
-    flags: { "-Wall", "-g", "-flto", "-std=gnu99" };
+    flags: { "-Wall", "-g", "-flto", "-std=gnu99", "-Wno-format-truncation" };
     output: ".";
     file: "mpc.c";
     file: "rusty.c" @depends("util.h", "dirent.h", "arg.h");
